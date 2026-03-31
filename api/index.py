@@ -3,12 +3,12 @@
 import sys
 import os
 
-# Add project root to path so imports work
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 load_dotenv()
 
+from mangum import Mangum
 from backend.api.main import app
 
-# Vercel uses the `app` variable directly as ASGI handler
+handler = Mangum(app, lifespan="off")
