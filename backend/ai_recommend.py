@@ -1,8 +1,9 @@
-"""AI recommendation engine. Uses Claude to pick and explain today's best tools."""
+"""AI recommendation engine. Uses MiniMax to pick and explain today's best tools."""
 
 import json
 import logging
-import os
+from openai import OpenAI
+from backend.config import MINIMAX_API_KEY
 from backend.db.queries import get_today_tools
 from backend.db import get_db
 
@@ -55,10 +56,9 @@ def get_cached_recommendations(date: str | None = None) -> list[dict]:
 
 
 def generate_recommendations() -> list[dict]:
-    """Use Claude to pick and explain today's best tools. Caches results."""
+    """Use MiniMax to pick and explain today's best tools. Caches results."""
     _ensure_table()
 
-    # Check cache first
     cached = get_cached_recommendations()
     if cached:
         return cached
@@ -67,18 +67,19 @@ def generate_recommendations() -> list[dict]:
     if not today_tools:
         return []
 
-    api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        logger.warning("No ANTHROPIC_API_KEY set, skipping AI recommendations")
+    if not MINIMAX_API_KEY:
+        logger.warning("No MINIMAX_API_KEY set, skipping AI recommendations")
         return []
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        client = OpenAI(
+            api_key=MINIMAX_API_KEY,
+            base_url="https://api.minimax.chat/v1",
+        )
 
-        # Build tool summaries for the prompt
+        # Build tool summaries
         tool_summaries = []
-        for tool in today_tools[:50]:  # Cap at 50
+        for tool in today_tools[:50]:
             metrics = json.loads(tool.get("metrics", "{}"))
             tool_summaries.append({
                 "id": tool["id"],
@@ -92,36 +93,50 @@ def generate_recommendations() -> list[dict]:
                 "votes": metrics.get("votes"),
             })
 
-        prompt = f"""You are Metis, an AI tool discovery assistant. From today's {len(tool_summaries)} newly discovered tools, pick the TOP 5 most valuable ones for developers and tech professionals.
+        prompt = f"""你是 Metis，一个AI工具发现助手。从今天新发现的 {len(tool_summaries)} 个工具中，挑选最有价值的 TOP 5 推荐给开发者和技术从业者。
 
-For each pick, provide:
-1. The tool's id (from the list)
-2. A recommendation reason (2-3 sentences, be specific about WHY this matters)
-3. Use cases (2-3 concrete scenarios where someone would use this)
-4. A score from 1-10 (10 = must-know)
+对每个推荐，提供：
+1. 工具的 id（来自列表）
+2. 推荐理由（2-3句话，具体说明为什么重要，中文）
+3. 适用场景（2-3个具体的使用场景，中文）
+4. 评分 1-10（10=必须了解）
 
-Focus on: practical utility, novelty, community traction, and potential impact on developer workflows.
+重点关注：实用性、新颖性、社区热度、对开发者工作流的潜在影响。
 
-Today's tools:
+今日工具列表：
 {json.dumps(tool_summaries, ensure_ascii=False, indent=2)}
 
-Respond in this exact JSON format:
-{{"picks": [{{"id": 123, "reason": "...", "use_cases": "...", "score": 9}}]}}
+严格按以下JSON格式返回，不要有其他文字：
+{{"picks": [{{"id": 123, "reason": "推荐理由...", "use_cases": "适用场景...", "score": 9}}]}}"""
 
-Respond ONLY with the JSON, no other text."""
-
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2000,
+        response = client.chat.completions.create(
+            model="MiniMax-M2.7-highspeed",
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000,
+            temperature=0.7,
         )
 
-        text = response.content[0].text.strip()
-        # Parse JSON from response
+        text = response.choices[0].message.content.strip()
+
+        # Strip <think>...</think> tags from reasoning models
+        import re
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+
+        # Extract JSON from response
+        # Try: raw JSON, ```json block, or first { to last }
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
+            text = text.strip()
+        elif not text.startswith("{"):
+            # Find JSON object in the text
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start >= 0 and end > start:
+                text = text[start:end]
+
+        logger.info(f"MiniMax response (first 200 chars): {text[:200]}")
         data = json.loads(text)
         picks = data.get("picks", [])
 
@@ -129,7 +144,6 @@ Respond ONLY with the JSON, no other text."""
         with get_db() as db:
             for pick in picks:
                 tool_id = pick["id"]
-                # Verify tool exists
                 exists = db.execute("SELECT 1 FROM tools WHERE id = ?", (tool_id,)).fetchone()
                 if not exists:
                     continue

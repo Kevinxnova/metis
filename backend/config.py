@@ -8,6 +8,7 @@ DB_PATH = DATA_DIR / "metis.db"
 # API Keys (from environment)
 BUTTONDOWN_API_KEY = os.getenv("BUTTONDOWN_API_KEY", "")
 PRODUCTHUNT_API_TOKEN = os.getenv("PRODUCTHUNT_API_TOKEN", "")
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
 
 # Scraper settings
 SCRAPE_TIMEOUT_SECONDS = 30
