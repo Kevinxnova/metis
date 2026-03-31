@@ -1,19 +1,126 @@
+import { useEffect, useRef } from 'react'
 import { Lang } from '../i18n'
+
+function StarField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    let animId: number
+    let w = canvas.width = window.innerWidth
+    let h = canvas.height = window.innerHeight
+
+    const stars: { x: number; y: number; r: number; vx: number; vy: number; alpha: number; pulse: number }[] = []
+    for (let i = 0; i < 200; i++) {
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.5 + 0.3,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        alpha: Math.random() * 0.6 + 0.2,
+        pulse: Math.random() * Math.PI * 2,
+      })
+    }
+
+    // Shooting stars
+    const shooters: { x: number; y: number; len: number; speed: number; alpha: number; active: boolean }[] = []
+    const spawnShooter = () => {
+      shooters.push({
+        x: Math.random() * w, y: Math.random() * h * 0.4,
+        len: Math.random() * 60 + 40, speed: Math.random() * 4 + 3,
+        alpha: 1, active: true,
+      })
+    }
+
+    let frame = 0
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h)
+      frame++
+
+      // Stars
+      for (const s of stars) {
+        s.x += s.vx
+        s.y += s.vy
+        s.pulse += 0.02
+        if (s.x < 0) s.x = w
+        if (s.x > w) s.x = 0
+        if (s.y < 0) s.y = h
+        if (s.y > h) s.y = 0
+
+        const flicker = s.alpha + Math.sin(s.pulse) * 0.15
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(180, 200, 255, ${flicker})`
+        ctx.fill()
+      }
+
+      // Connections (subtle constellation lines)
+      ctx.strokeStyle = 'rgba(96, 165, 250, 0.03)'
+      ctx.lineWidth = 0.5
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const dx = stars[i].x - stars[j].x
+          const dy = stars[i].y - stars[j].y
+          const dist = dx * dx + dy * dy
+          if (dist < 6000) {
+            ctx.beginPath()
+            ctx.moveTo(stars[i].x, stars[i].y)
+            ctx.lineTo(stars[j].x, stars[j].y)
+            ctx.stroke()
+          }
+        }
+      }
+
+      // Shooting stars
+      if (frame % 180 === 0 && Math.random() > 0.3) spawnShooter()
+      for (const sh of shooters) {
+        if (!sh.active) continue
+        sh.x += sh.speed
+        sh.y += sh.speed * 0.6
+        sh.alpha -= 0.012
+        if (sh.alpha <= 0 || sh.x > w || sh.y > h) { sh.active = false; continue }
+
+        const grad = ctx.createLinearGradient(sh.x, sh.y, sh.x - sh.len, sh.y - sh.len * 0.6)
+        grad.addColorStop(0, `rgba(200, 220, 255, ${sh.alpha})`)
+        grad.addColorStop(1, 'rgba(200, 220, 255, 0)')
+        ctx.beginPath()
+        ctx.moveTo(sh.x, sh.y)
+        ctx.lineTo(sh.x - sh.len, sh.y - sh.len * 0.6)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+      }
+
+      animId = requestAnimationFrame(draw)
+    }
+
+    draw()
+
+    const onResize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight }
+    window.addEventListener('resize', onResize)
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', onResize) }
+  }, [])
+
+  return <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />
+}
 
 export default function Landing({ lang }: { lang: Lang }) {
   const isZh = lang === 'zh'
 
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh', color: '#fff', overflow: 'hidden' }}>
-      {/* Ambient glow */}
-      <div style={{
-        position: 'fixed', top: -200, left: '50%', transform: 'translateX(-50%)',
-        width: 800, height: 800, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(96,165,250,0.08) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+    <div style={{ background: '#050510', minHeight: '100vh', color: '#fff', overflow: 'hidden' }}>
+      <StarField />
 
-      <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto', padding: '0 24px' }}>
+      {/* Ambient nebula glows */}
+      <div style={{ position: 'fixed', top: -300, left: '30%', width: 900, height: 900, borderRadius: '50%', background: 'radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 60%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'fixed', top: '40%', right: -200, width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', padding: '0 24px' }}>
 
         {/* Nav */}
         <nav style={{
@@ -21,7 +128,7 @@ export default function Landing({ lang }: { lang: Lang }) {
           padding: '24px 0',
         }}>
           <span style={{
-            fontSize: 20, fontWeight: 700, letterSpacing: -1,
+            fontSize: 22, fontWeight: 700, letterSpacing: -1,
             background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
@@ -30,41 +137,53 @@ export default function Landing({ lang }: { lang: Lang }) {
           <a href="/discover" style={{
             fontSize: 13, color: '#60a5fa', textDecoration: 'none',
             padding: '6px 16px', border: '1px solid rgba(96,165,250,0.3)',
-            borderRadius: 6, transition: 'background 0.2s',
+            borderRadius: 6, backdropFilter: 'blur(4px)', background: 'rgba(96,165,250,0.05)',
           }}>
             {isZh ? '进入 →' : 'Enter →'}
           </a>
         </nav>
 
         {/* Hero */}
-        <section style={{ paddingTop: 80, paddingBottom: 64, textAlign: 'center' }}>
+        <section style={{ paddingTop: 100, paddingBottom: 80, textAlign: 'center' }}>
+          {/* Giant Metis logo */}
           <h1 style={{
-            fontSize: 48, fontWeight: 800, lineHeight: 1.15, letterSpacing: -2,
-            margin: '0 0 20px',
-            background: 'linear-gradient(135deg, #fff 0%, #60a5fa 50%, #a78bfa 100%)',
+            fontSize: 120, fontWeight: 900, letterSpacing: -6, lineHeight: 1,
+            margin: '0 0 16px',
+            background: 'linear-gradient(135deg, #fff 0%, #60a5fa 40%, #a78bfa 70%, #f472b6 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            filter: 'drop-shadow(0 0 60px rgba(96,165,250,0.15))',
           }}>
-            {isZh ? '在信息洪流中\n只看重要的' : 'In the flood of information\nsee only what matters'}
+            Metis
           </h1>
           <p style={{
-            fontSize: 17, color: '#888', lineHeight: 1.8, maxWidth: 520, margin: '0 auto 40px',
+            fontSize: 22, fontWeight: 300, color: '#999', letterSpacing: 4, margin: '0 0 32px',
+            textTransform: 'uppercase',
+          }}>
+            {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
+          </p>
+          <p style={{
+            fontSize: 16, color: '#666', lineHeight: 1.9, maxWidth: 520, margin: '0 auto 48px',
           }}>
             {isZh
               ? 'AI 时代每天涌现大量工具和知识，靠社交媒体和口耳相传效率太低。Metis 持续追踪科技圈动态，帮你用最少的时间获取最有价值的信息。'
               : 'The AI era brings a flood of new tools and knowledge daily. Social media and word-of-mouth are too slow. Metis continuously tracks the tech world so you spend less time searching and more time building.'}
           </p>
           <a href="/discover" style={{
-            display: 'inline-block', padding: '14px 36px', fontSize: 15, fontWeight: 600,
+            display: 'inline-block', padding: '16px 48px', fontSize: 16, fontWeight: 600,
             background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
-            color: '#fff', borderRadius: 10, textDecoration: 'none',
-            transition: 'opacity 0.2s, transform 0.2s',
-          }}>
+            color: '#fff', borderRadius: 12, textDecoration: 'none',
+            boxShadow: '0 0 40px rgba(96,165,250,0.2), 0 0 80px rgba(139,92,246,0.1)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 50px rgba(96,165,250,0.3), 0 0 100px rgba(139,92,246,0.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(96,165,250,0.2), 0 0 80px rgba(139,92,246,0.1)' }}
+          >
             {isZh ? '开始探索' : 'Start Exploring'}
           </a>
         </section>
 
         {/* Divider */}
-        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, #222, transparent)', margin: '0 0 64px' }} />
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(96,165,250,0.2), transparent)', margin: '0 0 64px' }} />
 
         {/* Why */}
         <section style={{ marginBottom: 64 }}>
@@ -100,47 +219,17 @@ export default function Landing({ lang }: { lang: Lang }) {
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 24,
           }}>
-            <FeatureCard
-              icon="⭐"
-              title={isZh ? '优选榜' : "Editor's Picks"}
-              desc={isZh
-                ? '高热度、高价值的工具和知识，常驻置顶。经过严格筛选，每一个都值得你花时间了解。'
-                : 'High-impact tools and knowledge, pinned at the top. Rigorously curated — every pick is worth your time.'}
-              color="#f59e0b"
-            />
-            <FeatureCard
-              icon="💎"
-              title={isZh ? 'Metis 推荐' : 'Metis Picks'}
-              desc={isZh
-                ? '创作者每日精选推荐。带着对工具的理解和判断，帮你从海量信息中提炼最值得关注的。'
-                : 'Daily picks from the creator. Curated with real understanding and judgment, distilling what\'s worth your attention.'}
-              color="#8b5cf6"
-            />
-            <FeatureCard
-              icon="🤖"
-              title={isZh ? 'AI 推荐' : 'AI Picks'}
-              desc={isZh
-                ? 'AI 分析今日所有新发现，给出推荐理由和适用场景。人机协作，不漏掉任何亮点。'
-                : 'AI analyzes all daily discoveries, providing reasons and use cases. Human-AI collaboration ensures nothing slips through.'}
-              color="#60a5fa"
-            />
-            <FeatureCard
-              icon="📡"
-              title={isZh ? '今日发现' : "Today's Feed"}
-              desc={isZh
-                ? '每天从 GitHub、Hacker News、Product Hunt 等多个平台自动抓取，按类型和领域智能分类。'
-                : 'Auto-scraped daily from GitHub, HN, Product Hunt, and more. Classified by type and domain.'}
-              color="#4ade80"
-            />
+            <FeatureCard icon="⭐" title={isZh ? '优选榜' : "Editor's Picks"} desc={isZh ? '高热度、高价值的工具和知识，常驻置顶。经过严格筛选，每一个都值得你花时间了解。' : 'High-impact tools and knowledge, pinned at the top. Rigorously curated — every pick is worth your time.'} color="#f59e0b" />
+            <FeatureCard icon="💎" title={isZh ? 'Metis 推荐' : 'Metis Picks'} desc={isZh ? '创作者每日精选推荐。带着对工具的理解和判断，帮你从海量信息中提炼最值得关注的。' : 'Daily picks from the creator. Curated with real understanding and judgment, distilling what\'s worth your attention.'} color="#8b5cf6" />
+            <FeatureCard icon="🤖" title={isZh ? 'AI 推荐' : 'AI Picks'} desc={isZh ? 'AI 分析今日所有新发现，给出推荐理由和适用场景。人机协作，不漏掉任何亮点。' : 'AI analyzes all daily discoveries, providing reasons and use cases. Human-AI collaboration ensures nothing slips through.'} color="#60a5fa" />
+            <FeatureCard icon="📡" title={isZh ? '今日发现' : "Today's Feed"} desc={isZh ? '每天从 GitHub、Hacker News、Product Hunt 等多个平台自动抓取，按类型和领域智能分类。' : 'Auto-scraped daily from GitHub, HN, Product Hunt, and more. Classified by type and domain.'} color="#4ade80" />
           </div>
         </section>
 
         {/* Coverage */}
         <section style={{ marginBottom: 64 }}>
           <SectionLabel text={isZh ? '覆盖范围' : 'Coverage'} />
-          <div style={{
-            display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24, justifyContent: 'center',
-          }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24, justifyContent: 'center' }}>
             {[
               { emoji: '🤖', label: 'AI / ML' },
               { emoji: '🌐', label: isZh ? 'Web 开发' : 'Web Dev' },
@@ -153,8 +242,8 @@ export default function Landing({ lang }: { lang: Lang }) {
             ].map(d => (
               <span key={d.label} style={{
                 fontSize: 13, padding: '6px 14px', borderRadius: 8,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid #1e1e1e',
-                color: '#888',
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                color: '#777', backdropFilter: 'blur(4px)',
               }}>
                 {d.emoji} {d.label}
               </span>
@@ -166,21 +255,21 @@ export default function Landing({ lang }: { lang: Lang }) {
         <section style={{ textAlign: 'center', paddingBottom: 80 }}>
           <div style={{
             background: 'linear-gradient(135deg, rgba(96,165,250,0.06), rgba(139,92,246,0.06))',
-            border: '1px solid rgba(96,165,250,0.12)',
-            borderRadius: 16, padding: '40px 24px',
+            border: '1px solid rgba(96,165,250,0.1)',
+            borderRadius: 16, padding: '48px 24px',
+            backdropFilter: 'blur(8px)',
           }}>
-            <p style={{ fontSize: 20, fontWeight: 600, margin: '0 0 8px', color: '#eee' }}>
+            <p style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px', color: '#eee', letterSpacing: -0.5 }}>
               {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
-            <p style={{ fontSize: 14, color: '#666', margin: '0 0 24px' }}>
-              {isZh
-                ? '每天 5 分钟，掌握科技圈最值得关注的动态'
-                : '5 minutes a day to stay ahead of what matters in tech'}
+            <p style={{ fontSize: 14, color: '#666', margin: '0 0 28px' }}>
+              {isZh ? '每天 5 分钟，掌握科技圈最值得关注的动态' : '5 minutes a day to stay ahead of what matters in tech'}
             </p>
             <a href="/discover" style={{
-              display: 'inline-block', padding: '12px 32px', fontSize: 14, fontWeight: 600,
+              display: 'inline-block', padding: '14px 36px', fontSize: 15, fontWeight: 600,
               background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
-              color: '#fff', borderRadius: 8, textDecoration: 'none',
+              color: '#fff', borderRadius: 10, textDecoration: 'none',
+              boxShadow: '0 0 30px rgba(96,165,250,0.15)',
             }}>
               {isZh ? '立即体验 →' : 'Try Now →'}
             </a>
@@ -190,7 +279,7 @@ export default function Landing({ lang }: { lang: Lang }) {
         {/* Footer */}
         <footer style={{
           textAlign: 'center', padding: '24px 0', color: '#333', fontSize: 12,
-          borderTop: '1px solid #151515',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
         }}>
           Metis · {isZh ? '持续发现，持续成长' : 'Keep discovering, keep growing'}
         </footer>
@@ -203,9 +292,7 @@ function SectionLabel({ text }: { text: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ width: 3, height: 16, background: 'linear-gradient(180deg, #60a5fa, #a78bfa)', borderRadius: 2 }} />
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: 1 }}>
-        {text}
-      </span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>{text}</span>
     </div>
   )
 }
@@ -214,13 +301,12 @@ function StoryCard({ num, title, body }: { num: string; title: string; body: str
   return (
     <div style={{
       display: 'flex', gap: 16, padding: 20,
-      background: 'rgba(255,255,255,0.02)', border: '1px solid #1a1a1a',
-      borderRadius: 12,
+      background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+      borderRadius: 12, backdropFilter: 'blur(4px)',
     }}>
       <span style={{
-        fontSize: 32, fontWeight: 800, color: '#1a1a2e',
-        lineHeight: 1, flexShrink: 0, width: 40,
-        background: 'linear-gradient(180deg, #333, #1a1a1a)',
+        fontSize: 32, fontWeight: 800, lineHeight: 1, flexShrink: 0, width: 40,
+        background: 'linear-gradient(180deg, #333, #1a1a2e)',
         WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
       }}>
         {num}
@@ -238,7 +324,8 @@ function FeatureCard({ icon, title, desc, color }: { icon: string; title: string
     <div style={{
       padding: 20, borderRadius: 12,
       background: `linear-gradient(135deg, ${color}08, ${color}03)`,
-      border: `1px solid ${color}20`,
+      border: `1px solid ${color}15`,
+      backdropFilter: 'blur(4px)',
     }}>
       <div style={{ fontSize: 24, marginBottom: 8 }}>{icon}</div>
       <h3 style={{ fontSize: 14, fontWeight: 600, color: '#ddd', margin: '0 0 6px' }}>{title}</h3>
