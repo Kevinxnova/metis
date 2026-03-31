@@ -6,15 +6,18 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import os
 from backend.config import FRONTEND_URL
 from backend.db import init_db
 from backend.api.routes import tools, issues, send, health, translate, discover
 
 app = FastAPI(title="Metis", description="AI Tool Discovery Newsletter API")
 
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", FRONTEND_URL).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
