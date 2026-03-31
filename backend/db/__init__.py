@@ -44,7 +44,6 @@ class TursoConnection:
     def __init__(self):
         self._base = _turso_http_url()
         self._token = TURSO_TOKEN
-        self._client = httpx.Client(timeout=30)
         self.row_factory = None
 
     def execute(self, sql: str, params: tuple | list = ()) -> 'TursoCursor':
@@ -60,9 +59,10 @@ class TursoConnection:
             else:
                 args.append({"type": "text", "value": str(p)})
 
-        resp = self._client.post(
+        resp = httpx.post(
             f"{self._base}/v2/pipeline",
             headers={"Authorization": f"Bearer {self._token}"},
+            timeout=30,
             json={
                 "requests": [
                     {"type": "execute", "stmt": {"sql": sql, "args": args}},
@@ -124,7 +124,7 @@ class TursoConnection:
         pass
 
     def close(self):
-        self._client.close()
+        pass  # No persistent client to close
 
 
 class TursoCursor:
