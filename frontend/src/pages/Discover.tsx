@@ -52,23 +52,34 @@ export default function Discover({ lang }: { lang: Lang }) {
       <header style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
-            <h1 style={{
-              fontSize: 32, fontWeight: 700, letterSpacing: -1.5, margin: 0,
-              background: 'linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>
-              Metis
-            </h1>
+            <a href="/" style={{ textDecoration: 'none' }}>
+              <h1 style={{
+                fontSize: 32, fontWeight: 700, letterSpacing: -1.5, margin: 0,
+                background: 'linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                cursor: 'pointer',
+              }}>
+                Metis
+              </h1>
+            </a>
             <p style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
               {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
           </div>
-          <a href="/admin" style={{
-            fontSize: 12, color: '#555', textDecoration: 'none',
-            padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
-          }}>
-            {isZh ? '管理后台' : 'Admin'}
-          </a>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href="/" style={{
+              fontSize: 12, color: '#555', textDecoration: 'none',
+              padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
+            }}>
+              {isZh ? '关于' : 'About'}
+            </a>
+            <a href="/admin" style={{
+              fontSize: 12, color: '#555', textDecoration: 'none',
+              padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
+            }}>
+              {isZh ? '管理后台' : 'Admin'}
+            </a>
+          </div>
         </div>
       </header>
 
