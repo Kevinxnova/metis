@@ -19,6 +19,20 @@ def translate_text(text: str) -> str:
         return text
 
 
+_translator_zh_en = GoogleTranslator(source='zh-CN', target='en')
+
+
+def translate_take_to_en(text: str) -> str:
+    """Translate Chinese take to English."""
+    if not text or not text.strip():
+        return ""
+    try:
+        return _translator_zh_en.translate(text[:5000])
+    except Exception as e:
+        logger.warning(f"Take translation failed: {e}")
+        return ""
+
+
 def translate_tool(tool: dict) -> dict:
     """Add Chinese translations to a tool dict if missing."""
     if not tool.get("title_zh"):

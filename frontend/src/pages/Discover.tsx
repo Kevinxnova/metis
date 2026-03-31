@@ -67,20 +67,12 @@ export default function Discover({ lang }: { lang: Lang }) {
               {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href="/" style={{
-              fontSize: 12, color: '#555', textDecoration: 'none',
-              padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
-            }}>
-              {isZh ? '关于' : 'About'}
-            </a>
-            <a href="/admin" style={{
-              fontSize: 12, color: '#555', textDecoration: 'none',
-              padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
-            }}>
-              {isZh ? '管理后台' : 'Admin'}
-            </a>
-          </div>
+          <a href="/" style={{
+            fontSize: 12, color: '#555', textDecoration: 'none',
+            padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
+          }}>
+            {isZh ? '关于' : 'About'}
+          </a>
         </div>
       </header>
 

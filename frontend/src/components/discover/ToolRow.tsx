@@ -62,7 +62,7 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
           {!showAiInfo && tool.take && (
             <p style={{ fontSize: 12, color: '#a78bfa', lineHeight: 1.5, margin: '0 0 4px',
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              💎 {tool.take}
+              💎 {(!isZh && tool.take_en) ? tool.take_en : tool.take}
             </p>
           )}
         </div>

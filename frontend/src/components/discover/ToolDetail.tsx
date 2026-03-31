@@ -151,7 +151,7 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
               💎 {isZh ? 'Metis 点评' : 'Metis Review'}
             </div>
             <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
-              {tool.take}
+              {(!isZh && tool.take_en) ? tool.take_en : tool.take}
             </p>
           </div>
         )}

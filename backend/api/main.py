@@ -43,6 +43,21 @@ def handle_preflight():
         return "", 204
 
 
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+
+# --- Auth ---
+
+@app.route("/api/admin/verify", methods=["POST"])
+def admin_verify():
+    data = request.get_json() or {}
+    if not ADMIN_PASSWORD:
+        return jsonify({"ok": True})  # No password set = open
+    if data.get("password") == ADMIN_PASSWORD:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "detail": "Wrong password"}), 401
+
+
 # --- Health ---
 
 @app.route("/api/health")
@@ -123,6 +138,15 @@ def update_tool(tool_id):
     log_curation(tool_id=tool_id, action=action, take_text=data.get("take_text"))
     if data.get("take_text") and action != "skip":
         log_curation(tool_id=tool_id, action="edit_take", take_text=data["take_text"])
+        # Auto-translate take to English
+        try:
+            from backend.translate import translate_take_to_en
+            from backend.db.queries import save_take_en
+            en = translate_take_to_en(data["take_text"])
+            if en:
+                save_take_en(tool_id, en)
+        except Exception:
+            pass
 
     return jsonify({"ok": True, "status": new_status})
 

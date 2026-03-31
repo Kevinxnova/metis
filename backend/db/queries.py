@@ -38,14 +38,22 @@ def insert_tool(url: str, dedup_key: str, title: str, description: str,
 
 
 def _enrich_with_takes(db, tools: list[dict]) -> list[dict]:
-    """Add the latest take_text from curation_log to each tool."""
+    """Add the latest take_text from curation_log to each tool, plus take_en from tools table."""
     for tool in tools:
         take = db.execute(
             "SELECT take_text FROM curation_log WHERE tool_id = ? AND take_text IS NOT NULL AND take_text != '' ORDER BY created_at DESC LIMIT 1",
             (tool["id"],)
         ).fetchone()
         tool["take"] = take["take_text"] if take else None
+        # take_en is stored on the tools table directly
+        tool["take_en"] = tool.get("take_en") or None
     return tools
+
+
+def save_take_en(tool_id: int, take_en: str):
+    """Save the English translation of a take."""
+    with get_db() as db:
+        db.execute("UPDATE tools SET take_en = ? WHERE id = ?", (take_en, tool_id))
 
 
 def get_tools(status: str | None = None, content_type: str | None = None,

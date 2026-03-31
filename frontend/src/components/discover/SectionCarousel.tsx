@@ -101,7 +101,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
               display: '-webkit-box', WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
-              💎 {tool.take}
+              💎 {(!isZh && tool.take_en) ? tool.take_en : tool.take}
             </p>
           ) : desc ? (
             <p style={{

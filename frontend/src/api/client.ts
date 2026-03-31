@@ -28,6 +28,7 @@ export interface Tool {
   status: string
   sources: string
   take?: string
+  take_en?: string
 }
 
 export interface CategoryCounts {
@@ -100,6 +101,13 @@ export const api = {
   translateBatch: (limit = 20) =>
     request<{ translated: number; remaining: number }>(`/translate/batch?limit=${limit}`, {
       method: 'POST',
+    }),
+
+  // Admin auth
+  verifyAdmin: (password: string) =>
+    request<{ ok: boolean }>('/admin/verify', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
     }),
 
   // Admin actions

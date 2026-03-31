@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tools (
     domain TEXT DEFAULT 'general' CHECK(domain IN ('ai', 'web', 'devops', 'data', 'security', 'design', 'general')),
     is_featured INTEGER DEFAULT 0,
     is_metis_pick INTEGER DEFAULT 0,
+    take_en TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
