@@ -95,7 +95,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
               display: '-webkit-box', WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
-              {aiTool.ai_reason}
+              {(!isZh && aiTool.ai_reason_en) ? aiTool.ai_reason_en : aiTool.ai_reason}
             </p>
           ) : tool.take ? (
             <p style={{

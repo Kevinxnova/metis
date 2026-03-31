@@ -122,5 +122,7 @@ export const api = {
 export interface AiPick extends Tool {
   ai_reason: string
   ai_use_cases: string
+  ai_reason_en: string
+  ai_use_cases_en: string
   ai_score: number
 }

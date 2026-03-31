@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     tool_id INTEGER NOT NULL,
     reason TEXT NOT NULL,
     use_cases TEXT NOT NULL,
+    reason_en TEXT DEFAULT '',
+    use_cases_en TEXT DEFAULT '',
     score INTEGER DEFAULT 0,
     created_date TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -50,6 +52,8 @@ def get_cached_recommendations(date: str | None = None) -> list[dict]:
             d = dict(row)
             d["ai_reason"] = d.pop("reason", "")
             d["ai_use_cases"] = d.pop("use_cases", "")
+            d["ai_reason_en"] = d.pop("reason_en", "")
+            d["ai_use_cases_en"] = d.pop("use_cases_en", "")
             d["ai_score"] = d.pop("score", 0)
             results.append(d)
         return results
@@ -95,11 +99,13 @@ def generate_recommendations() -> list[dict]:
 
         prompt = f"""你是 Metis，一个AI工具发现助手。从今天新发现的 {len(tool_summaries)} 个工具中，挑选最有价值的 TOP 5 推荐给开发者和技术从业者。
 
-对每个推荐，提供：
-1. 工具的 id（来自列表）
-2. 推荐理由（2-3句话，具体说明为什么重要，中文）
-3. 适用场景（2-3个具体的使用场景，中文）
-4. 评分 1-10（10=必须了解）
+对每个推荐，同时提供中文和英文版本：
+1. id：工具的 id（来自列表）
+2. reason：推荐理由，中文，2-3句
+3. use_cases：适用场景，中文，2-3个
+4. reason_en：推荐理由，English，2-3 sentences
+5. use_cases_en：适用场景，English，2-3 scenarios
+6. score：评分 1-10（10=必须了解）
 
 重点关注：实用性、新颖性、社区热度、对开发者工作流的潜在影响。
 
@@ -107,7 +113,7 @@ def generate_recommendations() -> list[dict]:
 {json.dumps(tool_summaries, ensure_ascii=False, indent=2)}
 
 严格按以下JSON格式返回，不要有其他文字：
-{{"picks": [{{"id": 123, "reason": "推荐理由...", "use_cases": "适用场景...", "score": 9}}]}}"""
+{{"picks": [{{"id": 123, "reason": "中文理由", "use_cases": "中文场景", "reason_en": "English reason", "use_cases_en": "English use cases", "score": 9}}]}}"""
 
         response = client.chat.completions.create(
             model="MiniMax-M2.7-highspeed",
@@ -148,8 +154,10 @@ def generate_recommendations() -> list[dict]:
                 if not exists:
                     continue
                 db.execute(
-                    "INSERT INTO ai_recommendations (tool_id, reason, use_cases, score, created_date) VALUES (?, ?, ?, ?, date('now'))",
-                    (tool_id, pick["reason"], pick["use_cases"], pick.get("score", 5))
+                    "INSERT INTO ai_recommendations (tool_id, reason, use_cases, reason_en, use_cases_en, score, created_date) VALUES (?, ?, ?, ?, ?, ?, date('now'))",
+                    (tool_id, pick["reason"], pick["use_cases"],
+                     pick.get("reason_en", ""), pick.get("use_cases_en", ""),
+                     pick.get("score", 5))
                 )
 
         return get_cached_recommendations()

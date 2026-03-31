@@ -129,13 +129,13 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
               )}
             </div>
             <p style={{ fontSize: 14, color: '#ccc', lineHeight: 1.7, margin: '0 0 12px' }}>
-              {aiTool.ai_reason}
+              {(!isZh && aiTool.ai_reason_en) ? aiTool.ai_reason_en : aiTool.ai_reason}
             </p>
             <div style={{ fontSize: 12, color: '#8b8', fontWeight: 600, marginBottom: 6 }}>
               {isZh ? '💡 适用场景' : '💡 Use Cases'}
             </div>
             <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.7, margin: 0 }}>
-              {aiTool.ai_use_cases}
+              {(!isZh && aiTool.ai_use_cases_en) ? aiTool.ai_use_cases_en : aiTool.ai_use_cases}
             </p>
           </div>
         )}
