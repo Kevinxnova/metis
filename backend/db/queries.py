@@ -70,6 +70,38 @@ def get_category_counts() -> dict:
         }
 
 
+def set_featured(tool_id: int, featured: bool) -> bool:
+    with get_db() as db:
+        cursor = db.execute("UPDATE tools SET is_featured = ? WHERE id = ?", (1 if featured else 0, tool_id))
+        return cursor.rowcount > 0
+
+
+def set_metis_pick(tool_id: int, pick: bool) -> bool:
+    with get_db() as db:
+        cursor = db.execute("UPDATE tools SET is_metis_pick = ? WHERE id = ?", (1 if pick else 0, tool_id))
+        return cursor.rowcount > 0
+
+
+def get_featured_tools() -> list[dict]:
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM tools WHERE is_featured = 1 ORDER BY first_seen DESC").fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_metis_picks() -> list[dict]:
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM tools WHERE is_metis_pick = 1 ORDER BY first_seen DESC").fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_today_tools() -> list[dict]:
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM tools WHERE date(first_seen) = date('now') ORDER BY first_seen DESC"
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
 def get_tool(tool_id: int) -> dict | None:
     """Get a single tool by ID."""
     with get_db() as db:

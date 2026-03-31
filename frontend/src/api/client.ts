@@ -101,4 +101,25 @@ export const api = {
     request<{ translated: number; remaining: number }>(`/translate/batch?limit=${limit}`, {
       method: 'POST',
     }),
+
+  // Admin actions
+  setFeatured: (id: number, on: boolean) =>
+    request<{ ok: boolean }>(`/tools/${id}/featured?on=${on}`, { method: 'POST' }),
+
+  setMetisPick: (id: number, on: boolean) =>
+    request<{ ok: boolean }>(`/tools/${id}/metis-pick?on=${on}`, { method: 'POST' }),
+
+  // Discover page
+  getFeatured: () => request<Tool[]>('/discover/featured'),
+  getMetisPicks: () => request<Tool[]>('/discover/metis-picks'),
+  getAiPicks: () => request<AiPick[]>('/discover/ai-picks'),
+  generateAiPicks: () =>
+    request<{ count: number; picks: AiPick[] }>('/discover/ai-picks/generate', { method: 'POST' }),
+  getTodayTools: () => request<Tool[]>('/discover/today'),
+}
+
+export interface AiPick extends Tool {
+  ai_reason: string
+  ai_use_cases: string
+  ai_score: number
 }

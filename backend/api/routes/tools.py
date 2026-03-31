@@ -6,6 +6,7 @@ from backend.api.models import ToolAction, MergeRequest
 from backend.db.queries import (
     get_tools, get_tool, update_tool_status,
     log_curation, merge_tools, get_category_counts,
+    set_featured, set_metis_pick,
 )
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -71,3 +72,21 @@ def merge_tool(tool_id: int, req: MergeRequest):
     log_curation(tool_id=tool_id, action="merge", metadata={"merged_into": req.merge_into_id})
 
     return {"ok": True, "merged_into": req.merge_into_id}
+
+
+@router.post("/{tool_id}/featured")
+def toggle_featured(tool_id: int, on: bool = True):
+    tool = get_tool(tool_id)
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    set_featured(tool_id, on)
+    return {"ok": True, "is_featured": on}
+
+
+@router.post("/{tool_id}/metis-pick")
+def toggle_metis_pick(tool_id: int, on: bool = True):
+    tool = get_tool(tool_id)
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    set_metis_pick(tool_id, on)
+    return {"ok": True, "is_metis_pick": on}

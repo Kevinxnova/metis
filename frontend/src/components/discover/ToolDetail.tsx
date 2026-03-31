@@ -1,8 +1,8 @@
-import { Tool } from '../../api/client'
+import { Tool, AiPick } from '../../api/client'
 import { Lang, td } from '../../i18n'
 
 interface Props {
-  tool: Tool
+  tool: Tool | AiPick
   lang: Lang
   onBack: () => void
 }
@@ -85,6 +85,8 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
   const desc = (isZh && tool.description_zh) ? tool.description_zh : tool.description
   const sources = JSON.parse(tool.sources || '[]') as string[]
   const recommendation = generateRecommendation(tool, lang)
+  const aiTool = tool as AiPick
+  const hasAi = !!(aiTool.ai_reason)
 
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
@@ -176,14 +178,43 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           </div>
         </div>
 
-        {/* Recommendation */}
+        {/* AI Recommendation (if available) */}
+        {hasAi && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(139,92,246,0.08))',
+            border: '1px solid rgba(96,165,250,0.2)',
+            borderRadius: 12, padding: 20, marginBottom: 16,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, color: '#60a5fa', fontWeight: 600 }}>
+                🤖 {isZh ? 'AI 推荐理由' : 'AI Recommendation'}
+              </span>
+              {aiTool.ai_score && (
+                <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                  {aiTool.ai_score}/10
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: 14, color: '#ccc', lineHeight: 1.7, margin: '0 0 12px' }}>
+              {aiTool.ai_reason}
+            </p>
+            <div style={{ fontSize: 12, color: '#8b8', fontWeight: 600, marginBottom: 6 }}>
+              {isZh ? '💡 适用场景' : '💡 Use Cases'}
+            </div>
+            <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.7, margin: 0 }}>
+              {aiTool.ai_use_cases}
+            </p>
+          </div>
+        )}
+
+        {/* Metis Recommendation */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(96,165,250,0.08), rgba(167,139,250,0.08))',
-          border: '1px solid rgba(96,165,250,0.15)',
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.06), rgba(167,139,250,0.04))',
+          border: '1px solid rgba(139,92,246,0.12)',
           borderRadius: 12, padding: 20, marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, color: '#60a5fa', fontWeight: 600, marginBottom: 8 }}>
-            {isZh ? '💡 Metis 推荐理由' : '💡 Why Metis Picked This'}
+          <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginBottom: 8 }}>
+            💎 {isZh ? 'Metis 分析' : 'Metis Analysis'}
           </div>
           <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
             {recommendation}

@@ -21,6 +21,10 @@ def init_db():
         conn.execute("ALTER TABLE tools ADD COLUMN content_type TEXT DEFAULT 'other'")
     if "domain" not in cols:
         conn.execute("ALTER TABLE tools ADD COLUMN domain TEXT DEFAULT 'general'")
+    if "is_featured" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN is_featured INTEGER DEFAULT 0")
+    if "is_metis_pick" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN is_metis_pick INTEGER DEFAULT 0")
     conn.commit()
     conn.close()
 

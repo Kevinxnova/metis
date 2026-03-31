@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS tools (
     description_zh TEXT,
     content_type TEXT DEFAULT 'other' CHECK(content_type IN ('tool', 'library', 'model', 'api', 'article', 'other')),
     domain TEXT DEFAULT 'general' CHECK(domain IN ('ai', 'web', 'devops', 'data', 'security', 'design', 'general')),
+    is_featured INTEGER DEFAULT 0,
+    is_metis_pick INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
