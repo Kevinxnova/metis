@@ -3,6 +3,7 @@ import { api, Tool, AiPick } from '../api/client'
 import { Lang, t } from '../i18n'
 import ToolRow from '../components/discover/ToolRow'
 import ToolDetail from '../components/discover/ToolDetail'
+import SectionCarousel from '../components/discover/SectionCarousel'
 
 export default function Discover({ lang }: { lang: Lang }) {
   const [featured, setFeatured] = useState<Tool[]>([])
@@ -101,11 +102,12 @@ export default function Discover({ lang }: { lang: Lang }) {
               empty={featured.length === 0}
               emptyText={isZh ? '暂无优选。在管理后台设置优选工具。' : 'No featured tools yet. Set them in Admin.'}
             >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                {featured.map(tool => (
-                  <ToolRow key={tool.id} tool={tool} lang={lang} onSelect={setSelectedTool} />
-                ))}
-              </div>
+              <SectionCarousel
+                tools={featured}
+                lang={lang}
+                onSelect={setSelectedTool}
+                accentColor="#f59e0b"
+              />
             </Section>
 
             {/* 2. Metis 推荐 */}
@@ -129,7 +131,7 @@ export default function Discover({ lang }: { lang: Lang }) {
             <Section
               icon="🤖"
               title={isZh ? 'AI 推荐' : 'AI Recommended'}
-              subtitle={isZh ? 'Claude 分析今日工具，给出理由和场景' : 'Claude analyzes today\'s tools with reasons and use cases'}
+              subtitle={isZh ? 'AI 分析今日工具，给出理由和场景' : 'AI analyzes today\'s tools with reasons and use cases'}
               gradient="linear-gradient(135deg, rgba(96,165,250,0.08), rgba(96,165,250,0.02))"
               borderColor="rgba(96,165,250,0.2)"
               empty={aiPicks.length === 0}
@@ -152,11 +154,13 @@ export default function Discover({ lang }: { lang: Lang }) {
                 ) : undefined
               }
             >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                {aiPicks.map(tool => (
-                  <ToolRow key={tool.id} tool={tool} lang={lang} onSelect={setSelectedTool} showAiInfo />
-                ))}
-              </div>
+              <SectionCarousel
+                tools={aiPicks}
+                lang={lang}
+                onSelect={setSelectedTool}
+                accentColor="#60a5fa"
+                showAiInfo
+              />
             </Section>
 
             {/* 4. 今日发现 */}
