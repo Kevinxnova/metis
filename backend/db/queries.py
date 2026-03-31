@@ -113,11 +113,35 @@ def get_metis_picks() -> list[dict]:
 
 
 def get_today_tools() -> list[dict]:
+    """Get today's tools sorted by metrics (stars/points/votes) descending."""
     with get_db() as db:
         rows = db.execute(
-            "SELECT * FROM tools WHERE date(first_seen) = date('now') ORDER BY first_seen DESC"
+            """SELECT *,
+                COALESCE(
+                    json_extract(metrics, '$.stars'),
+                    json_extract(metrics, '$.points'),
+                    json_extract(metrics, '$.votes'),
+                    0
+                ) as sort_score
+            FROM tools
+            WHERE date(first_seen) = date('now')
+            ORDER BY sort_score DESC"""
         ).fetchall()
         return _enrich_with_takes(db, [dict(row) for row in rows])
+
+
+def get_random_tool() -> dict | None:
+    """Get a random tool from today's discoveries."""
+    with get_db() as db:
+        row = db.execute(
+            "SELECT * FROM tools WHERE date(first_seen) = date('now') ORDER BY RANDOM() LIMIT 1"
+        ).fetchone()
+        if not row:
+            # Fallback: random from all tools
+            row = db.execute("SELECT * FROM tools ORDER BY RANDOM() LIMIT 1").fetchone()
+        if not row:
+            return None
+        return _enrich_with_takes(db, [dict(row)])[0]
 
 
 def get_tool(tool_id: int) -> dict | None:

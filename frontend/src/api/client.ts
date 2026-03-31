@@ -116,6 +116,7 @@ export const api = {
   generateAiPicks: () =>
     request<{ count: number; picks: AiPick[] }>('/discover/ai-picks/generate', { method: 'POST' }),
   getTodayTools: () => request<Tool[]>('/discover/today'),
+  getRandomTool: () => request<Tool>('/discover/random'),
 }
 
 export interface AiPick extends Tool {

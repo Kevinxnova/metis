@@ -169,12 +169,33 @@ export default function Discover({ lang }: { lang: Lang }) {
               icon="📡"
               title={isZh ? '今日发现' : "Today's Discoveries"}
               subtitle={isZh
-                ? `今天从 GitHub、HN、Product Hunt 抓取了 ${todayTools.length} 个新工具`
-                : `${todayTools.length} new tools found today across GitHub, HN, Product Hunt`}
+                ? `今天从 GitHub、HN、Product Hunt 抓取了 ${todayTools.length} 个新工具，按热度排序`
+                : `${todayTools.length} new tools found today, sorted by popularity`}
               gradient="linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))"
               borderColor="rgba(255,255,255,0.08)"
               empty={todayTools.length === 0}
               emptyText={isZh ? '今天暂无新发现。运行爬虫抓取。' : 'No new tools today. Run the scraper.'}
+              action={
+                todayTools.length > 0 ? (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const tool = await api.getRandomTool()
+                        setSelectedTool(tool)
+                      } catch { /* ignore */ }
+                    }}
+                    style={{
+                      fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
+                      border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)',
+                      color: '#aaa', transition: 'background 0.2s, color 0.2s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#aaa' }}
+                  >
+                    🎲 {isZh ? '随机一个' : 'Random Pick'}
+                  </button>
+                ) : undefined
+              }
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                 {todayTools.map(tool => (

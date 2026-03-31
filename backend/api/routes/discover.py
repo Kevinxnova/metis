@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from backend.db.queries import get_featured_tools, get_metis_picks, get_today_tools
+from backend.db.queries import get_featured_tools, get_metis_picks, get_today_tools, get_random_tool
 from backend.ai_recommend import generate_recommendations, get_cached_recommendations
 
 router = APIRouter(prefix="/discover", tags=["discover"])
@@ -35,5 +35,15 @@ def generate_ai_picks():
 
 @router.get("/today")
 def today():
-    """All tools discovered today."""
+    """All tools discovered today, sorted by metrics descending."""
     return get_today_tools()
+
+
+@router.get("/random")
+def random_tool():
+    """Get a random tool from today (or all if none today)."""
+    tool = get_random_tool()
+    if not tool:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No tools found")
+    return tool
