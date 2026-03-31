@@ -3,9 +3,11 @@ import ScrapeHealth from './components/ScrapeHealth'
 import ToolFeed from './components/ToolFeed'
 import NewsletterPreview from './components/NewsletterPreview'
 import { Lang, t, getSavedLang, saveLang } from './i18n'
+import { ToolFilters } from './hooks/useTools'
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(getSavedLang)
+  const [filters, setFilters] = useState<ToolFilters>({})
 
   const toggleLang = () => {
     const next = lang === 'zh' ? 'en' : 'zh'
@@ -38,8 +40,8 @@ export default function App() {
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24,
       }}>
-        <ToolFeed lang={lang} />
-        <NewsletterPreview lang={lang} />
+        <ToolFeed lang={lang} filters={filters} onFiltersChange={setFilters} />
+        <NewsletterPreview lang={lang} filters={filters} />
       </div>
     </div>
   )

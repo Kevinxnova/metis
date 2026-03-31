@@ -23,19 +23,17 @@ function FilterPill({ label, active, count, onClick }: {
   )
 }
 
-export default function ToolFeed({ lang }: { lang: Lang }) {
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
-  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined)
-  const [domainFilter, setDomainFilter] = useState<string | undefined>(undefined)
+interface Props {
+  lang: Lang
+  filters: ToolFilters
+  onFiltersChange: (filters: ToolFilters) => void
+}
+
+export default function ToolFeed({ lang, filters, onFiltersChange }: Props) {
   const [counts, setCounts] = useState<CategoryCounts | null>(null)
   const [translating, setTranslating] = useState(false)
   const translatedRef = useRef(false)
 
-  const filters: ToolFilters = {
-    status: statusFilter,
-    content_type: typeFilter,
-    domain: domainFilter,
-  }
   const { tools, loading, error, updateTool, refresh } = useTools(filters)
 
   useEffect(() => {
@@ -57,6 +55,10 @@ export default function ToolFeed({ lang }: { lang: Lang }) {
     })
   }, [lang, tools.length])
 
+  const setFilter = (key: keyof ToolFilters, value: string | undefined) => {
+    onFiltersChange({ ...filters, [key]: value })
+  }
+
   return (
     <div>
       {/* Status filter row */}
@@ -69,12 +71,12 @@ export default function ToolFeed({ lang }: { lang: Lang }) {
         ].map(f => (
           <button
             key={f.key ?? 'all'}
-            onClick={() => setStatusFilter(f.key)}
+            onClick={() => setFilter('status', f.key)}
             style={{
               padding: '4px 12px', fontSize: 13, borderRadius: 4, cursor: 'pointer',
-              border: `1px solid ${statusFilter === f.key ? '#333' : '#ddd'}`,
-              background: statusFilter === f.key ? '#333' : 'white',
-              color: statusFilter === f.key ? 'white' : '#666',
+              border: `1px solid ${filters.status === f.key ? '#333' : '#ddd'}`,
+              background: filters.status === f.key ? '#333' : 'white',
+              color: filters.status === f.key ? 'white' : '#666',
             }}
           >
             {f.label}
@@ -90,16 +92,16 @@ export default function ToolFeed({ lang }: { lang: Lang }) {
         <span style={{ fontSize: 11, color: '#999', minWidth: 36 }}>{t(lang, 'filterType')}</span>
         <FilterPill
           label={t(lang, 'type_all')}
-          active={!typeFilter}
-          onClick={() => setTypeFilter(undefined)}
+          active={!filters.content_type}
+          onClick={() => setFilter('content_type', undefined)}
         />
         {TYPE_KEYS.map(k => (
           <FilterPill
             key={k}
             label={td(lang, `type_${k}`)}
-            active={typeFilter === k}
+            active={filters.content_type === k}
             count={counts?.by_type[k]}
-            onClick={() => setTypeFilter(typeFilter === k ? undefined : k)}
+            onClick={() => setFilter('content_type', filters.content_type === k ? undefined : k)}
           />
         ))}
       </div>
@@ -109,16 +111,16 @@ export default function ToolFeed({ lang }: { lang: Lang }) {
         <span style={{ fontSize: 11, color: '#999', minWidth: 36 }}>{t(lang, 'filterDomain')}</span>
         <FilterPill
           label={t(lang, 'domain_all')}
-          active={!domainFilter}
-          onClick={() => setDomainFilter(undefined)}
+          active={!filters.domain}
+          onClick={() => setFilter('domain', undefined)}
         />
         {DOMAIN_KEYS.map(k => (
           <FilterPill
             key={k}
             label={td(lang, `domain_${k}`)}
-            active={domainFilter === k}
+            active={filters.domain === k}
             count={counts?.by_domain[k]}
-            onClick={() => setDomainFilter(domainFilter === k ? undefined : k)}
+            onClick={() => setFilter('domain', filters.domain === k ? undefined : k)}
           />
         ))}
       </div>
