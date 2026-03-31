@@ -11,82 +11,15 @@ function parseMetrics(s: string): Record<string, unknown> {
   try { return JSON.parse(s) } catch { return {} }
 }
 
-function generateRecommendation(tool: Tool, lang: Lang): string {
-  const metrics = parseMetrics(tool.metrics)
-  const parts: string[] = []
-
-  if (lang === 'zh') {
-    // Source credibility
-    const sources = JSON.parse(tool.sources || '[]') as string[]
-    if (sources.length > 1) {
-      parts.push(`在 ${sources.join('、')} 等 ${sources.length} 个平台同时被发现，说明关注度很高。`)
-    }
-
-    // Metrics
-    if (metrics.stars && Number(metrics.stars) > 1000) {
-      parts.push(`GitHub ${metrics.stars} 星，社区认可度高。`)
-    } else if (metrics.stars && Number(metrics.stars) > 100) {
-      parts.push(`GitHub ${metrics.stars} 星，处于快速增长期。`)
-    }
-    if (metrics.points && Number(metrics.points) > 100) {
-      parts.push(`Hacker News ${metrics.points} 分，引发了热烈讨论。`)
-    }
-    if (metrics.votes && Number(metrics.votes) > 200) {
-      parts.push(`Product Hunt ${metrics.votes} 票，受到产品社区关注。`)
-    }
-
-    // Type-specific
-    if (tool.content_type === 'model') {
-      parts.push('作为AI模型，可能会改变你处理特定任务的方式。')
-    } else if (tool.content_type === 'tool') {
-      parts.push('作为开发工具，可以直接提升你的日常工作效率。')
-    } else if (tool.content_type === 'library') {
-      parts.push('作为代码库，可以在你的项目中直接使用。')
-    } else if (tool.content_type === 'article') {
-      parts.push('这篇内容值得花时间阅读，可能会带来新的思路。')
-    }
-
-    if (parts.length === 0) parts.push('这是一个值得关注的新发现。')
-  } else {
-    const sources = JSON.parse(tool.sources || '[]') as string[]
-    if (sources.length > 1) {
-      parts.push(`Spotted on ${sources.length} platforms (${sources.join(', ')}), indicating significant attention.`)
-    }
-    if (metrics.stars && Number(metrics.stars) > 1000) {
-      parts.push(`${metrics.stars} GitHub stars shows strong community adoption.`)
-    } else if (metrics.stars && Number(metrics.stars) > 100) {
-      parts.push(`${metrics.stars} GitHub stars and growing fast.`)
-    }
-    if (metrics.points && Number(metrics.points) > 100) {
-      parts.push(`${metrics.points} points on Hacker News with active discussion.`)
-    }
-    if (metrics.votes && Number(metrics.votes) > 200) {
-      parts.push(`${metrics.votes} votes on Product Hunt.`)
-    }
-    if (tool.content_type === 'model') {
-      parts.push('As an AI model, this could change how you approach specific tasks.')
-    } else if (tool.content_type === 'tool') {
-      parts.push('A dev tool that can directly boost your daily productivity.')
-    } else if (tool.content_type === 'library') {
-      parts.push('A library you can integrate directly into your projects.')
-    } else if (tool.content_type === 'article') {
-      parts.push('Worth the read — may bring new perspectives.')
-    }
-    if (parts.length === 0) parts.push('A noteworthy new find.')
-  }
-
-  return parts.join(' ')
-}
-
 export default function ToolDetail({ tool, lang, onBack }: Props) {
   const isZh = lang === 'zh'
   const metrics = parseMetrics(tool.metrics)
   const title = (isZh && tool.title_zh) ? tool.title_zh : tool.title
   const desc = (isZh && tool.description_zh) ? tool.description_zh : tool.description
   const sources = JSON.parse(tool.sources || '[]') as string[]
-  const recommendation = generateRecommendation(tool, lang)
   const aiTool = tool as AiPick
   const hasAi = !!(aiTool.ai_reason)
+  const hasTake = !!(tool.take)
 
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
@@ -178,7 +111,7 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           </div>
         </div>
 
-        {/* AI Recommendation (if available) */}
+        {/* AI Recommendation (only if from AI picks) */}
         {hasAi && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(139,92,246,0.08))',
@@ -207,19 +140,21 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           </div>
         )}
 
-        {/* Metis Recommendation */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(139,92,246,0.06), rgba(167,139,250,0.04))',
-          border: '1px solid rgba(139,92,246,0.12)',
-          borderRadius: 12, padding: 20, marginBottom: 24,
-        }}>
-          <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginBottom: 8 }}>
-            💎 {isZh ? 'Metis 分析' : 'Metis Analysis'}
+        {/* Admin take (only if the admin wrote one) */}
+        {hasTake && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.06), rgba(167,139,250,0.04))',
+            border: '1px solid rgba(139,92,246,0.12)',
+            borderRadius: 12, padding: 20, marginBottom: 24,
+          }}>
+            <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginBottom: 8 }}>
+              💎 {isZh ? 'Metis 点评' : 'Metis Review'}
+            </div>
+            <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
+              {tool.take}
+            </p>
           </div>
-          <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
-            {recommendation}
-          </p>
-        </div>
+        )}
 
         {/* Description */}
         <div style={{ marginBottom: 32 }}>

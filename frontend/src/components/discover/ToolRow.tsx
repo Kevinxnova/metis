@@ -59,6 +59,12 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
               {aiTool.ai_reason}
             </p>
           )}
+          {!showAiInfo && tool.take && (
+            <p style={{ fontSize: 12, color: '#a78bfa', lineHeight: 1.5, margin: '0 0 4px',
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              💎 {tool.take}
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#555', flexShrink: 0, paddingTop: 4 }}>
           {metrics.stars != null && <span>⭐{String(metrics.stars)}</span>}

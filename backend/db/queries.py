@@ -30,6 +30,17 @@ def insert_tool(url: str, dedup_key: str, title: str, description: str,
             raise
 
 
+def _enrich_with_takes(db, tools: list[dict]) -> list[dict]:
+    """Add the latest take_text from curation_log to each tool."""
+    for tool in tools:
+        take = db.execute(
+            "SELECT take_text FROM curation_log WHERE tool_id = ? AND take_text IS NOT NULL AND take_text != '' ORDER BY created_at DESC LIMIT 1",
+            (tool["id"],)
+        ).fetchone()
+        tool["take"] = take["take_text"] if take else None
+    return tools
+
+
 def get_tools(status: str | None = None, content_type: str | None = None,
               domain: str | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
     """Get tools, optionally filtered by status, content_type, domain."""
@@ -52,7 +63,7 @@ def get_tools(status: str | None = None, content_type: str | None = None,
             f"SELECT * FROM tools {where} ORDER BY first_seen DESC LIMIT ? OFFSET ?",
             params
         ).fetchall()
-        return [dict(row) for row in rows]
+        return _enrich_with_takes(db, [dict(row) for row in rows])
 
 
 def get_category_counts() -> dict:
@@ -85,13 +96,13 @@ def set_metis_pick(tool_id: int, pick: bool) -> bool:
 def get_featured_tools() -> list[dict]:
     with get_db() as db:
         rows = db.execute("SELECT * FROM tools WHERE is_featured = 1 ORDER BY first_seen DESC").fetchall()
-        return [dict(row) for row in rows]
+        return _enrich_with_takes(db, [dict(row) for row in rows])
 
 
 def get_metis_picks() -> list[dict]:
     with get_db() as db:
         rows = db.execute("SELECT * FROM tools WHERE is_metis_pick = 1 ORDER BY first_seen DESC").fetchall()
-        return [dict(row) for row in rows]
+        return _enrich_with_takes(db, [dict(row) for row in rows])
 
 
 def get_today_tools() -> list[dict]:
@@ -99,14 +110,17 @@ def get_today_tools() -> list[dict]:
         rows = db.execute(
             "SELECT * FROM tools WHERE date(first_seen) = date('now') ORDER BY first_seen DESC"
         ).fetchall()
-        return [dict(row) for row in rows]
+        return _enrich_with_takes(db, [dict(row) for row in rows])
 
 
 def get_tool(tool_id: int) -> dict | None:
     """Get a single tool by ID."""
     with get_db() as db:
         row = db.execute("SELECT * FROM tools WHERE id = ?", (tool_id,)).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        tools = _enrich_with_takes(db, [dict(row)])
+        return tools[0]
 
 
 def update_tool_status(tool_id: int, status: str) -> bool:
