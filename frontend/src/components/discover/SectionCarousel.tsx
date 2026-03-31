@@ -20,8 +20,6 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
   const [paused, setPaused] = useState(false)
   const isZh = lang === 'zh'
 
-  const cardWidth = 334 // 320 + 14 gap
-  const totalWidth = tools.length * cardWidth
   const duration = tools.length * 8 // ~8s per card
 
   const renderCard = (tool: Tool | AiPick, idx: number) => {

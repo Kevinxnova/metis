@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, Tool, AiPick } from '../api/client'
-import { Lang, t } from '../i18n'
+import { Lang } from '../i18n'
 import ToolRow from '../components/discover/ToolRow'
 import ToolDetail from '../components/discover/ToolDetail'
 import SectionCarousel from '../components/discover/SectionCarousel'
