@@ -50,6 +50,30 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@app.route("/api/debug")
+def debug():
+    """Temporary debug endpoint to diagnose Turso connection."""
+    import traceback
+    info = {
+        "turso_url_set": bool(os.getenv("TURSO_DATABASE_URL")),
+        "turso_url_prefix": (os.getenv("TURSO_DATABASE_URL") or "")[:30],
+        "turso_token_set": bool(os.getenv("TURSO_AUTH_TOKEN")),
+        "turso_token_len": len(os.getenv("TURSO_AUTH_TOKEN") or ""),
+    }
+    try:
+        from backend.db import get_db, _use_turso
+        info["use_turso"] = _use_turso()
+        with get_db() as db:
+            count = db.execute("SELECT COUNT(*) as c FROM tools").fetchone()
+            info["tools_count"] = count["c"]
+            info["db_ok"] = True
+    except Exception as e:
+        info["db_ok"] = False
+        info["error"] = str(e)
+        info["traceback"] = traceback.format_exc()
+    return jsonify(info)
+
+
 @app.route("/api/health/scrapes")
 def scrape_status():
     return jsonify({"scrapes": get_latest_scrape_runs()})
