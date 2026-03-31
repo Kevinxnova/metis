@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import ScrapeHealth from './components/ScrapeHealth'
-import ToolFeed from './components/ToolFeed'
-import NewsletterPreview from './components/NewsletterPreview'
-import { Lang, t, getSavedLang, saveLang } from './i18n'
-import { ToolFilters } from './hooks/useTools'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Discover from './pages/Discover'
+import Admin from './pages/Admin'
+import { Lang, getSavedLang, saveLang } from './i18n'
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(getSavedLang)
-  const [filters, setFilters] = useState<ToolFilters>({})
 
   const toggleLang = () => {
     const next = lang === 'zh' ? 'en' : 'zh'
@@ -16,33 +14,22 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      background: '#fafafa', minHeight: '100vh', padding: 24,
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #ddd',
-      }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: -0.5, margin: 0 }}>
-          {t(lang, 'title')}
-        </h1>
+    <BrowserRouter>
+      {/* Global language toggle */}
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 100 }}>
         <button onClick={toggleLang} style={{
-          padding: '4px 12px', fontSize: 13, borderRadius: 4, cursor: 'pointer',
-          border: '1px solid #ddd', background: 'white', color: '#666',
+          padding: '6px 14px', fontSize: 13, borderRadius: 20, cursor: 'pointer',
+          border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.6)',
+          color: '#ccc', backdropFilter: 'blur(8px)',
         }}>
-          {t(lang, 'switchLang')}
+          {lang === 'zh' ? 'EN' : '中文'}
         </button>
       </div>
 
-      <ScrapeHealth lang={lang} />
-
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24,
-      }}>
-        <ToolFeed lang={lang} filters={filters} onFiltersChange={setFilters} />
-        <NewsletterPreview lang={lang} filters={filters} />
-      </div>
-    </div>
+      <Routes>
+        <Route path="/" element={<Discover lang={lang} />} />
+        <Route path="/admin" element={<Admin lang={lang} />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
