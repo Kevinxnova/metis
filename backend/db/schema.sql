@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS tools (
     sources TEXT DEFAULT '[]',
     title_zh TEXT,
     description_zh TEXT,
+    content_type TEXT DEFAULT 'other' CHECK(content_type IN ('tool', 'library', 'model', 'api', 'article', 'other')),
+    domain TEXT DEFAULT 'general' CHECK(domain IN ('ai', 'web', 'devops', 'data', 'security', 'design', 'general')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

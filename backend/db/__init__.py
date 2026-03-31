@@ -17,6 +17,10 @@ def init_db():
         conn.execute("ALTER TABLE tools ADD COLUMN title_zh TEXT")
     if "description_zh" not in cols:
         conn.execute("ALTER TABLE tools ADD COLUMN description_zh TEXT")
+    if "content_type" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN content_type TEXT DEFAULT 'other'")
+    if "domain" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN domain TEXT DEFAULT 'general'")
     conn.commit()
     conn.close()
 

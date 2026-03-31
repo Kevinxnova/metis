@@ -29,6 +29,26 @@ const messages = {
     found: '已发现',
     switchLang: 'EN',
     scrapeError: '⚠',
+    // Categories - content type
+    filterType: '类型',
+    filterDomain: '领域',
+    type_all: '全部类型',
+    type_tool: '🔧 工具',
+    type_library: '📦 代码库',
+    type_model: '🧠 模型',
+    type_api: '📡 API/服务',
+    type_article: '📖 文章',
+    type_other: '💡 其他',
+    // Categories - domain
+    domain_all: '全部领域',
+    domain_ai: '🤖 AI/ML',
+    domain_web: '🌐 Web开发',
+    domain_devops: '⚙️ DevOps',
+    domain_data: '📊 数据',
+    domain_security: '🔒 安全',
+    domain_design: '🎨 设计',
+    domain_general: '💼 通用',
+    translating: '正在翻译...',
   },
   en: {
     title: 'Metis — Daily Review',
@@ -58,11 +78,39 @@ const messages = {
     found: 'found',
     switchLang: '中文',
     scrapeError: '⚠',
+    // Categories - content type
+    filterType: 'Type',
+    filterDomain: 'Domain',
+    type_all: 'All Types',
+    type_tool: '🔧 Tool',
+    type_library: '📦 Library',
+    type_model: '🧠 Model',
+    type_api: '📡 API',
+    type_article: '📖 Article',
+    type_other: '💡 Other',
+    // Categories - domain
+    domain_all: 'All Domains',
+    domain_ai: '🤖 AI/ML',
+    domain_web: '🌐 Web',
+    domain_devops: '⚙️ DevOps',
+    domain_data: '📊 Data',
+    domain_security: '🔒 Security',
+    domain_design: '🎨 Design',
+    domain_general: '💼 General',
+    translating: 'Translating...',
   },
 } as const
 
-export function t(lang: Lang, key: keyof typeof messages.en): string {
+type MessageKey = keyof typeof messages.en
+
+export function t(lang: Lang, key: MessageKey): string {
   return messages[lang][key]
+}
+
+// For dynamic keys built at runtime
+export function td(lang: Lang, key: string): string {
+  const m = messages[lang] as Record<string, string>
+  return m[key] ?? key
 }
 
 export function getSavedLang(): Lang {

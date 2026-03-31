@@ -5,15 +5,22 @@ from fastapi import APIRouter, HTTPException
 from backend.api.models import ToolAction, MergeRequest
 from backend.db.queries import (
     get_tools, get_tool, update_tool_status,
-    log_curation, merge_tools,
+    log_curation, merge_tools, get_category_counts,
 )
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
 
 @router.get("")
-def list_tools(status: str | None = None, limit: int = 100, offset: int = 0):
-    return get_tools(status=status, limit=limit, offset=offset)
+def list_tools(status: str | None = None, content_type: str | None = None,
+               domain: str | None = None, limit: int = 100, offset: int = 0):
+    return get_tools(status=status, content_type=content_type,
+                     domain=domain, limit=limit, offset=offset)
+
+
+@router.get("/categories")
+def categories():
+    return get_category_counts()
 
 
 @router.get("/{tool_id}")

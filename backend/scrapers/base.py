@@ -5,8 +5,9 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from backend.db.queries import insert_tool, tool_exists, log_scrape_run
+from backend.db.queries import insert_tool, tool_exists, log_scrape_run, save_classification
 from backend.dedup.url_normalize import compute_dedup_key
+from backend.classifier import classify_tool
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,10 @@ class BaseScraper(ABC):
                 )
                 if result is not None:
                     tools_new += 1
+                    # Auto-classify new tools
+                    tool_dict = {"title": raw.title, "description": raw.description, "url": raw.url}
+                    content_type, domain = classify_tool(tool_dict)
+                    save_classification(result, content_type, domain)
                 else:
                     tools_deduped += 1
 

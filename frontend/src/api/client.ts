@@ -19,6 +19,8 @@ export interface Tool {
   description: string
   title_zh: string | null
   description_zh: string | null
+  content_type: string
+  domain: string
   source: string
   source_url: string
   metrics: string
@@ -26,6 +28,11 @@ export interface Tool {
   status: string
   sources: string
   take?: string
+}
+
+export interface CategoryCounts {
+  by_type: Record<string, number>
+  by_domain: Record<string, number>
 }
 
 export interface Issue {
@@ -49,8 +56,16 @@ export interface ScrapeRun {
 
 export const api = {
   // Tools
-  getTools: (status?: string) =>
-    request<Tool[]>(`/tools${status ? `?status=${status}` : ''}`),
+  getTools: (filters?: { status?: string; content_type?: string; domain?: string }) => {
+    const params = new URLSearchParams()
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.content_type) params.set('content_type', filters.content_type)
+    if (filters?.domain) params.set('domain', filters.domain)
+    const qs = params.toString()
+    return request<Tool[]>(`/tools${qs ? `?${qs}` : ''}`)
+  },
+
+  getCategories: () => request<CategoryCounts>('/tools/categories'),
 
   updateTool: (id: number, action: string, takeText?: string) =>
     request<{ ok: boolean }>(`/tools/${id}`, {

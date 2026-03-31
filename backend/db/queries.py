@@ -30,20 +30,44 @@ def insert_tool(url: str, dedup_key: str, title: str, description: str,
             raise
 
 
-def get_tools(status: str | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
-    """Get tools, optionally filtered by status."""
+def get_tools(status: str | None = None, content_type: str | None = None,
+              domain: str | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
+    """Get tools, optionally filtered by status, content_type, domain."""
     with get_db() as db:
+        conditions = []
+        params: list = []
         if status:
-            rows = db.execute(
-                "SELECT * FROM tools WHERE status = ? ORDER BY first_seen DESC LIMIT ? OFFSET ?",
-                (status, limit, offset)
-            ).fetchall()
-        else:
-            rows = db.execute(
-                "SELECT * FROM tools ORDER BY first_seen DESC LIMIT ? OFFSET ?",
-                (limit, offset)
-            ).fetchall()
+            conditions.append("status = ?")
+            params.append(status)
+        if content_type:
+            conditions.append("content_type = ?")
+            params.append(content_type)
+        if domain:
+            conditions.append("domain = ?")
+            params.append(domain)
+
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        params.extend([limit, offset])
+        rows = db.execute(
+            f"SELECT * FROM tools {where} ORDER BY first_seen DESC LIMIT ? OFFSET ?",
+            params
+        ).fetchall()
         return [dict(row) for row in rows]
+
+
+def get_category_counts() -> dict:
+    """Get tool counts grouped by content_type and domain."""
+    with get_db() as db:
+        type_rows = db.execute(
+            "SELECT content_type, COUNT(*) as count FROM tools WHERE status != 'archived' GROUP BY content_type"
+        ).fetchall()
+        domain_rows = db.execute(
+            "SELECT domain, COUNT(*) as count FROM tools WHERE status != 'archived' GROUP BY domain"
+        ).fetchall()
+        return {
+            "by_type": {row["content_type"] or "other": row["count"] for row in type_rows},
+            "by_domain": {row["domain"] or "general": row["count"] for row in domain_rows},
+        }
 
 
 def get_tool(tool_id: int) -> dict | None:
@@ -80,6 +104,25 @@ def merge_tools(keep_id: int, merge_id: int) -> bool:
                     (json.dumps(combined), json.dumps(keep_metrics), keep_id))
         db.execute("UPDATE tools SET status = 'archived' WHERE id = ?", (merge_id,))
         return True
+
+
+def save_classification(tool_id: int, content_type: str, domain: str):
+    """Save classification for a tool."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE tools SET content_type = ?, domain = ? WHERE id = ?",
+            (content_type, domain, tool_id)
+        )
+
+
+def get_unclassified_tools(limit: int = 100) -> list[dict]:
+    """Get tools that haven't been classified yet."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM tools WHERE content_type IS NULL OR content_type = 'other' AND domain = 'general' LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]
 
 
 def save_translation(tool_id: int, title_zh: str, description_zh: str):

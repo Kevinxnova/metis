@@ -1,5 +1,5 @@
 import { Tool } from '../api/client'
-import { Lang, t } from '../i18n'
+import { Lang, t, td } from '../i18n'
 
 interface Props {
   tool: Tool
@@ -32,8 +32,26 @@ export default function ToolCard({ tool, onAction, lang }: Props) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-            {sources.length > 1 ? sources.join(' + ') : tool.source}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {sources.length > 1 ? sources.join(' + ') : tool.source}
+            </span>
+            {tool.content_type && tool.content_type !== 'other' && (
+              <span style={{
+                fontSize: 10, padding: '1px 6px', borderRadius: 8,
+                background: '#f0f7ff', color: '#4a7fbf', border: '1px solid #d0e3f7',
+              }}>
+                {td(lang, `type_${tool.content_type}`)}
+              </span>
+            )}
+            {tool.domain && tool.domain !== 'general' && (
+              <span style={{
+                fontSize: 10, padding: '1px 6px', borderRadius: 8,
+                background: '#f0faf4', color: '#4a9f6f', border: '1px solid #d0eadc',
+              }}>
+                {td(lang, `domain_${tool.domain}`)}
+              </span>
+            )}
           </div>
           <a href={tool.url} target="_blank" rel="noopener"
              style={{ fontSize: 15, fontWeight: 600, color: '#333', textDecoration: 'none' }}>
