@@ -18,14 +18,21 @@ def insert_tool(url: str, dedup_key: str, title: str, description: str,
             )
             return cursor.lastrowid
         except Exception:
-            # dedup_key already exists, merge sources
-            existing = db.execute("SELECT id, sources FROM tools WHERE dedup_key = ?", (dedup_key,)).fetchone()
+            # dedup_key already exists, merge sources + update metrics
+            existing = db.execute("SELECT id, sources, metrics FROM tools WHERE dedup_key = ?", (dedup_key,)).fetchone()
             if existing:
                 sources = json.loads(existing["sources"])
                 if source not in sources:
                     sources.append(source)
-                    db.execute("UPDATE tools SET sources = ? WHERE id = ?",
-                               (json.dumps(sources), existing["id"]))
+
+                # Merge metrics: keep higher values
+                old_metrics = json.loads(existing["metrics"])
+                for k, v in metrics.items():
+                    if v and (not old_metrics.get(k) or (isinstance(v, (int, float)) and v > old_metrics.get(k, 0))):
+                        old_metrics[k] = v
+
+                db.execute("UPDATE tools SET sources = ?, metrics = ? WHERE id = ?",
+                           (json.dumps(sources), json.dumps(old_metrics), existing["id"]))
                 return None
             raise
 

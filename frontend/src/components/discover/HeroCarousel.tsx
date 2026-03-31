@@ -116,9 +116,9 @@ export default function HeroCarousel({ tools, lang, onSelect }: Props) {
 
             {/* Metrics */}
             <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#555' }}>
-              {metrics.stars != null && <span>⭐ {String(metrics.stars)}</span>}
-              {metrics.points != null && <span>▲ {String(metrics.points)}</span>}
-              {metrics.votes != null && <span>▲ {String(metrics.votes)}</span>}
+              {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐ {String(metrics.stars)}</span>}
+              {metrics.points != null && Number(metrics.points) > 0 && <span>▲ {String(metrics.points)}</span>}
+              {metrics.votes != null && Number(metrics.votes) > 0 && <span>▲ {String(metrics.votes)}</span>}
             </div>
           </div>
         )

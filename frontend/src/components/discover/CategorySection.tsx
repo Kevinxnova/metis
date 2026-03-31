@@ -68,9 +68,9 @@ export default function CategorySection({ title, tools, lang, onSelect }: Props)
                 {desc?.slice(0, 120) || (isZh ? '暂无描述' : 'No description')}
               </p>
               <div style={{ display: 'flex', gap: 10, fontSize: 11, color: '#444' }}>
-                {metrics.stars != null && <span>⭐ {String(metrics.stars)}</span>}
-                {metrics.points != null && <span>▲ {String(metrics.points)}</span>}
-                {metrics.votes != null && <span>▲ {String(metrics.votes)}</span>}
+                {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐ {String(metrics.stars)}</span>}
+                {metrics.points != null && Number(metrics.points) > 0 && <span>▲ {String(metrics.points)}</span>}
+                {metrics.votes != null && Number(metrics.votes) > 0 && <span>▲ {String(metrics.votes)}</span>}
                 <span>{tool.source}</span>
               </div>
             </div>

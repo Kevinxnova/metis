@@ -119,10 +119,10 @@ export default function ToolCard({ tool, onAction, lang }: Props) {
         </p>
       )}
       <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#999' }}>
-        {metrics.stars != null && <span>⭐ {String(metrics.stars)}</span>}
-        {metrics.points != null && <span>▲ {String(metrics.points)}</span>}
-        {metrics.votes != null && <span>▲ {String(metrics.votes)}</span>}
-        {metrics.comments != null && <span>💬 {String(metrics.comments)}</span>}
+        {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐ {String(metrics.stars)}</span>}
+        {metrics.points != null && Number(metrics.points) > 0 && <span>▲ {String(metrics.points)}</span>}
+        {metrics.votes != null && Number(metrics.votes) > 0 && <span>▲ {String(metrics.votes)}</span>}
+        {metrics.comments != null && Number(metrics.comments) > 0 && <span>💬 {String(metrics.comments)}</span>}
         <span>{new Date(tool.first_seen).toLocaleDateString()}</span>
       </div>
     </div>

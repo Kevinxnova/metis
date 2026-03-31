@@ -67,8 +67,8 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#555', flexShrink: 0, paddingTop: 4 }}>
-          {metrics.stars != null && <span>⭐{String(metrics.stars)}</span>}
-          {metrics.points != null && <span>▲{String(metrics.points)}</span>}
+          {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐{String(metrics.stars)}</span>}
+          {metrics.points != null && Number(metrics.points) > 0 && <span>▲{String(metrics.points)}</span>}
         </div>
       </div>
     </div>

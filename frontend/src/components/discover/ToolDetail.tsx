@@ -73,7 +73,7 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           display: 'flex', gap: 24, padding: '16px 0', marginBottom: 24,
           borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a',
         }}>
-          {metrics.stars != null && (
+          {metrics.stars != null && Number(metrics.stars) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>⭐ {String(metrics.stars)}</div>
               <div style={{ fontSize: 11, color: '#555' }}>Stars</div>
@@ -85,19 +85,19 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
               <div style={{ fontSize: 11, color: '#555' }}>{isZh ? '今日新增' : 'Today'}</div>
             </div>
           )}
-          {metrics.points != null && (
+          {metrics.points != null && Number(metrics.points) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>▲ {String(metrics.points)}</div>
               <div style={{ fontSize: 11, color: '#555' }}>HN Points</div>
             </div>
           )}
-          {metrics.comments != null && (
+          {metrics.comments != null && Number(metrics.comments) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>💬 {String(metrics.comments)}</div>
               <div style={{ fontSize: 11, color: '#555' }}>{isZh ? '评论' : 'Comments'}</div>
             </div>
           )}
-          {metrics.votes != null && (
+          {metrics.votes != null && Number(metrics.votes) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>▲ {String(metrics.votes)}</div>
               <div style={{ fontSize: 11, color: '#555' }}>PH Votes</div>

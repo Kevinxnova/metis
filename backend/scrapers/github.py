@@ -1,4 +1,4 @@
-"""GitHub Trending scraper. Fetches trending repos via the unofficial web page."""
+"""GitHub Trending scraper. Parses trending page for repos, then fetches star counts via GitHub API."""
 
 import re
 import logging
@@ -29,32 +29,15 @@ class GitHubScraper(BaseScraper):
 
     def _parse_trending_page(self, html: str, seen_repos: set) -> list[RawTool]:
         tools = []
-
-        # Extract repo entries from the trending page HTML
-        # Pattern: <article> blocks containing repo info
-        repo_pattern = re.compile(
-            r'<h2[^>]*>\s*<a[^>]*href="(/[^"]+)"[^>]*>',
-            re.DOTALL
-        )
-        desc_pattern = re.compile(
-            r'<p[^>]*class="[^"]*col-9[^"]*"[^>]*>\s*(.*?)\s*</p>',
-            re.DOTALL
-        )
-        stars_pattern = re.compile(
-            r'class="d-inline-block float-sm-right">\s*([0-9,]+)\s*stars today',
-            re.DOTALL
-        )
-
-        # Split HTML into article blocks
         articles = html.split('<article')
 
-        for article in articles[1:]:  # Skip content before first article
-            # Extract repo path
-            repo_match = repo_pattern.search(article)
-            if not repo_match:
+        for article in articles[1:]:
+            # Extract repo path from <h2> link
+            h2_match = re.search(r'<h2[^>]*>[\s\S]*?href="(/[^"]+)"', article)
+            if not h2_match:
                 continue
 
-            repo_path = repo_match.group(1).strip()
+            repo_path = h2_match.group(1).strip()
             parts = repo_path.strip("/").split("/")
             if len(parts) < 2:
                 continue
@@ -68,31 +51,42 @@ class GitHubScraper(BaseScraper):
 
             # Extract description
             desc = ""
-            desc_match = desc_pattern.search(article)
+            desc_match = re.search(r'<p[^>]*class="[^"]*col-9[^"]*"[^>]*>\s*(.*?)\s*</p>', article, re.DOTALL)
             if desc_match:
                 desc = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip()
 
             # Extract stars today
             stars_today = 0
-            stars_match = stars_pattern.search(article)
-            if stars_match:
-                stars_today = int(stars_match.group(1).replace(",", ""))
+            today_match = re.search(r'([\d,]+)\s+stars?\s+today', article)
+            if today_match:
+                stars_today = int(today_match.group(1).replace(",", ""))
 
-            # Extract total stars (pattern varies)
-            total_stars = 0
-            total_match = re.search(r'href="/' + re.escape(full_name) + r'/stargazers"[^>]*>\s*([0-9,]+)', article)
-            if total_match:
-                total_stars = int(total_match.group(1).replace(",", ""))
+            # Fetch real star count from GitHub API
+            stars = self._fetch_stars(owner, repo)
 
             tools.append(RawTool(
                 url=f"https://github.com/{full_name}",
                 title=full_name,
                 description=desc,
-                source_url=f"https://github.com/trending",
+                source_url="https://github.com/trending",
                 metrics={
-                    "stars": total_stars,
+                    "stars": stars,
                     "stars_today": stars_today,
                 },
             ))
 
         return tools
+
+    def _fetch_stars(self, owner: str, repo: str) -> int:
+        """Fetch star count from GitHub REST API. Returns 0 on failure."""
+        try:
+            resp = httpx.get(
+                f"https://api.github.com/repos/{owner}/{repo}",
+                timeout=10,
+                headers={"Accept": "application/vnd.github.v3+json"},
+            )
+            if resp.status_code == 200:
+                return resp.json().get("stargazers_count", 0)
+        except Exception as e:
+            logger.debug(f"GitHub API failed for {owner}/{repo}: {e}")
+        return 0
