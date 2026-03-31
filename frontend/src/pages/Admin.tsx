@@ -28,7 +28,7 @@ export default function Admin({ lang }: { lang: Lang }) {
             {lang === 'zh' ? '管理后台' : 'Admin'}
           </span>
         </div>
-        <a href="/" style={{
+        <a href="/discover" style={{
           fontSize: 13, color: '#666', textDecoration: 'none',
           padding: '4px 12px', border: '1px solid #ddd', borderRadius: 4,
         }}>

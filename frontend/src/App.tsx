@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Landing from './pages/Landing'
 import Discover from './pages/Discover'
 import Admin from './pages/Admin'
 import { Lang, getSavedLang, saveLang } from './i18n'
@@ -27,7 +28,8 @@ export default function App() {
       </div>
 
       <Routes>
-        <Route path="/" element={<Discover lang={lang} />} />
+        <Route path="/" element={<Landing lang={lang} />} />
+        <Route path="/discover" element={<Discover lang={lang} />} />
         <Route path="/admin" element={<Admin lang={lang} />} />
       </Routes>
     </BrowserRouter>

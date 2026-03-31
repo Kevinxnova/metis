@@ -60,7 +60,7 @@ export default function Discover({ lang }: { lang: Lang }) {
               Metis
             </h1>
             <p style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
-              {isZh ? '发现下一个改变你工作流的工具' : 'Discover the next tool that changes your workflow'}
+              {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
           </div>
           <a href="/admin" style={{
