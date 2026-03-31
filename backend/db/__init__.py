@@ -13,8 +13,8 @@ from backend.config import DATA_DIR
 
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
-TURSO_URL = os.getenv("TURSO_DATABASE_URL", "")
-TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "")
+TURSO_URL = os.getenv("TURSO_DATABASE_URL", "").strip()
+TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "").strip()
 
 
 def _use_turso() -> bool:
