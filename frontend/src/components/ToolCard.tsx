@@ -1,15 +1,17 @@
 import { Tool } from '../api/client'
+import { Lang, t } from '../i18n'
 
 interface Props {
   tool: Tool
   onAction: (id: number, action: string, takeText?: string) => void
+  lang: Lang
 }
 
 function parseJSON(s: string): Record<string, unknown> {
   try { return JSON.parse(s) } catch { return {} }
 }
 
-export default function ToolCard({ tool, onAction }: Props) {
+export default function ToolCard({ tool, onAction, lang }: Props) {
   const metrics = parseJSON(tool.metrics)
   const sources = JSON.parse(tool.sources || '[]') as string[]
   const isApproved = tool.status === 'approved'
@@ -40,24 +42,24 @@ export default function ToolCard({ tool, onAction }: Props) {
             <>
               <button onClick={() => onAction(tool.id, 'approve')}
                 style={{ border: '1px solid #4a9', background: 'white', borderRadius: 4, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#4a9' }}>
-                ✓ Approve
+                {t(lang, 'approve')}
               </button>
               <button onClick={() => onAction(tool.id, 'skip')}
                 style={{ border: '1px solid #ccc', background: 'white', borderRadius: 4, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#aaa' }}>
-                Skip
+                {t(lang, 'skip')}
               </button>
             </>
           )}
           {isApproved && (
             <button onClick={() => onAction(tool.id, 'unapprove')}
               style={{ border: '1px solid #4a9', background: '#4a9', borderRadius: 4, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'white' }}>
-              ✓ Approved
+              {t(lang, 'approved_btn')}
             </button>
           )}
           {isSkipped && (
             <button onClick={() => onAction(tool.id, 'unapprove')}
               style={{ border: '1px solid #ccc', background: '#f5f5f5', borderRadius: 4, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#aaa' }}>
-              Skipped
+              {t(lang, 'skipped_btn')}
             </button>
           )}
         </div>

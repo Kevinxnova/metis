@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { api, Tool } from '../api/client'
 import TakeEditor from './TakeEditor'
+import { Lang, t } from '../i18n'
 
-export default function NewsletterPreview() {
+export default function NewsletterPreview({ lang }: { lang: Lang }) {
   const [approved, setApproved] = useState<Tool[]>([])
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
@@ -20,7 +21,7 @@ export default function NewsletterPreview() {
 
   const handleCreateAndSend = async () => {
     if (approved.length === 0) {
-      setMessage('No approved tools to send')
+      setMessage(t(lang, 'noApproved'))
       return
     }
 
@@ -29,9 +30,9 @@ export default function NewsletterPreview() {
     try {
       const { issue_number } = await api.createIssue()
       await api.sendIssue(issue_number)
-      setMessage(`Issue #${issue_number} sent!`)
+      setMessage(`Issue #${issue_number}${t(lang, 'issueSent')}`)
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Send failed')
+      setMessage(e instanceof Error ? e.message : t(lang, 'sendFailed'))
     } finally {
       setSending(false)
     }
@@ -42,18 +43,18 @@ export default function NewsletterPreview() {
       background: 'white', border: '1px solid #e0e0e0', borderRadius: 6,
       padding: 20, position: 'sticky', top: 24,
     }}>
-      <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Newsletter Draft</h2>
+      <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t(lang, 'newsletterDraft')}</h2>
       <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
-        {approved.length} tools approved
+        {approved.length} {t(lang, 'toolsApproved')}
       </div>
 
       {approved.map(tool => (
-        <TakeEditor key={tool.id} tool={tool} onSave={handleSaveTake} />
+        <TakeEditor key={tool.id} tool={tool} onSave={handleSaveTake} lang={lang} />
       ))}
 
       {approved.length === 0 && (
         <p style={{ color: '#bbb', fontSize: 13, textAlign: 'center', padding: 16 }}>
-          Approve tools from the feed to add them here
+          {t(lang, 'approveFirst')}
         </p>
       )}
 
@@ -66,13 +67,13 @@ export default function NewsletterPreview() {
           marginTop: 12,
         }}
       >
-        {sending ? 'Sending...' : 'Create & Send Issue'}
+        {sending ? t(lang, 'sending') : t(lang, 'createAndSend')}
       </button>
 
       {message && (
         <p style={{
           fontSize: 12, textAlign: 'center', marginTop: 8,
-          color: message.includes('sent') ? '#4a9' : '#e55',
+          color: message.includes('sent') || message.includes('已发送') ? '#4a9' : '#e55',
         }}>
           {message}
         </p>
@@ -83,7 +84,7 @@ export default function NewsletterPreview() {
         border: '1px solid #ddd', borderRadius: 4, fontSize: 12, cursor: 'pointer',
         marginTop: 8,
       }}>
-        ↻ Refresh
+        {t(lang, 'refresh')}
       </button>
     </div>
   )
