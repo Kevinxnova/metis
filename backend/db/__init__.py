@@ -1,12 +1,17 @@
 """Database layer. Uses Turso HTTP API when deployed, local SQLite for dev."""
 
 import os
+import ssl
 import sqlite3
-import httpx
 import json
+import urllib.request
+import urllib.error
+import certifi
 from pathlib import Path
 from contextlib import contextmanager
 from backend.config import DATA_DIR
+
+_SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 TURSO_URL = os.getenv("TURSO_DATABASE_URL", "")
 TURSO_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "")
@@ -17,7 +22,6 @@ def _use_turso() -> bool:
 
 
 def _turso_http_url() -> str:
-    """Convert libsql:// URL to https:// for HTTP API."""
     url = TURSO_URL
     if url.startswith("libsql://"):
         url = "https://" + url[len("libsql://"):]
@@ -25,7 +29,7 @@ def _turso_http_url() -> str:
 
 
 class TursoRow:
-    """sqlite3.Row-compatible wrapper for Turso HTTP API results."""
+    """sqlite3.Row-compatible wrapper."""
     def __init__(self, columns: list[str], values: list):
         self._data = dict(zip(columns, values))
 
@@ -39,15 +43,28 @@ class TursoRow:
 
 
 class TursoConnection:
-    """sqlite3-compatible connection that uses Turso HTTP API."""
+    """sqlite3-compatible connection using Turso HTTP API via urllib."""
 
     def __init__(self):
         self._base = _turso_http_url()
         self._token = TURSO_TOKEN
         self.row_factory = None
 
+    def _post(self, payload: dict) -> dict:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{self._base}/v2/pipeline",
+            data=data,
+            headers={
+                "Authorization": f"Bearer {self._token}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30, context=_SSL_CTX) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
     def execute(self, sql: str, params: tuple | list = ()) -> 'TursoCursor':
-        # Convert ? placeholders to Turso's format
         args = []
         for p in params:
             if p is None:
@@ -59,24 +76,16 @@ class TursoConnection:
             else:
                 args.append({"type": "text", "value": str(p)})
 
-        resp = httpx.post(
-            f"{self._base}/v2/pipeline",
-            headers={"Authorization": f"Bearer {self._token}"},
-            timeout=30,
-            json={
-                "requests": [
-                    {"type": "execute", "stmt": {"sql": sql, "args": args}},
-                    {"type": "close"},
-                ]
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        data = self._post({
+            "requests": [
+                {"type": "execute", "stmt": {"sql": sql, "args": args}},
+                {"type": "close"},
+            ]
+        })
 
         result = data.get("results", [{}])[0]
         if result.get("type") == "error":
-            error_msg = result.get("error", {}).get("message", "Unknown Turso error")
-            raise Exception(error_msg)
+            raise Exception(result.get("error", {}).get("message", "Turso error"))
 
         response = result.get("response", {}).get("result", {})
         cols = [c["name"] for c in response.get("cols", [])]
@@ -86,10 +95,8 @@ class TursoConnection:
 
         rows = []
         for row_data in rows_raw:
-            values = [cell.get("value") for cell in row_data]
-            # Convert integer strings back to int
             converted = []
-            for i, cell in enumerate(row_data):
+            for cell in row_data:
                 v = cell.get("value")
                 if cell.get("type") == "integer" and v is not None:
                     converted.append(int(v))
@@ -102,8 +109,7 @@ class TursoConnection:
             else:
                 rows.append(tuple(converted))
 
-        cursor = TursoCursor(rows, affected, last_id)
-        return cursor
+        return TursoCursor(rows, affected, last_id)
 
     def executescript(self, sql: str):
         for stmt in sql.split(";"):
@@ -115,16 +121,13 @@ class TursoConnection:
                     pass
 
     def commit(self):
-        pass  # Turso auto-commits
+        pass
 
     def rollback(self):
         pass
 
-    def sync(self):
-        pass
-
     def close(self):
-        pass  # No persistent client to close
+        pass
 
 
 class TursoCursor:
@@ -158,7 +161,6 @@ def init_db():
             except:
                 pass
 
-    # Migrations
     try:
         cols = [row[1] for row in conn.execute("PRAGMA table_info(tools)").fetchall()]
         for col, default in [

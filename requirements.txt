@@ -3,3 +3,4 @@ httpx==0.28.1
 deep-translator==1.11.4
 openai>=1.0.0
 python-dotenv>=1.0.0
+certifi
