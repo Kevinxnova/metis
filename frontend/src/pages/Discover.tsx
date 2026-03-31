@@ -160,6 +160,7 @@ export default function Discover({ lang }: { lang: Lang }) {
                 onSelect={setSelectedTool}
                 accentColor="#60a5fa"
                 showAiInfo
+                smooth
               />
             </Section>
 
