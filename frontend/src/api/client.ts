@@ -17,6 +17,8 @@ export interface Tool {
   url: string
   title: string
   description: string
+  title_zh: string | null
+  description_zh: string | null
   source: string
   source_url: string
   metrics: string
@@ -78,4 +80,10 @@ export const api = {
   // Health
   getScrapeStatus: () =>
     request<{ scrapes: ScrapeRun[] }>('/health/scrapes'),
+
+  // Translate
+  translateBatch: (limit = 20) =>
+    request<{ translated: number; remaining: number }>(`/translate/batch?limit=${limit}`, {
+      method: 'POST',
+    }),
 }

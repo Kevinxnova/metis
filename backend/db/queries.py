@@ -82,6 +82,25 @@ def merge_tools(keep_id: int, merge_id: int) -> bool:
         return True
 
 
+def save_translation(tool_id: int, title_zh: str, description_zh: str):
+    """Save Chinese translations for a tool."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE tools SET title_zh = ?, description_zh = ? WHERE id = ?",
+            (title_zh, description_zh, tool_id)
+        )
+
+
+def get_untranslated_tools(limit: int = 20) -> list[dict]:
+    """Get tools that don't have Chinese translations yet."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM tools WHERE title_zh IS NULL ORDER BY first_seen DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
 def tool_exists(dedup_key: str) -> bool:
     """Check if a tool with this dedup_key exists."""
     with get_db() as db:

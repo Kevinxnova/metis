@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import FRONTEND_URL
 from backend.db import init_db
-from backend.api.routes import tools, issues, send, health
+from backend.api.routes import tools, issues, send, health, translate
 
 app = FastAPI(title="Metis", description="AI Tool Discovery Newsletter API")
 
@@ -21,6 +21,7 @@ app.include_router(tools.router, prefix="/api")
 app.include_router(issues.router, prefix="/api")
 app.include_router(send.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
+app.include_router(translate.router, prefix="/api")
 
 
 @app.on_event("startup")

@@ -6,11 +6,18 @@ from backend.config import DB_PATH, DATA_DIR
 
 
 def init_db():
-    """Initialize database with schema."""
+    """Initialize database with schema and run migrations."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH))
     schema_path = Path(__file__).parent / "schema.sql"
     conn.executescript(schema_path.read_text())
+    # Migration: add translation columns if missing
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(tools)").fetchall()]
+    if "title_zh" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN title_zh TEXT")
+    if "description_zh" not in cols:
+        conn.execute("ALTER TABLE tools ADD COLUMN description_zh TEXT")
+    conn.commit()
     conn.close()
 
 

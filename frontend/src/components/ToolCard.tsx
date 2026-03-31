@@ -16,6 +16,9 @@ export default function ToolCard({ tool, onAction, lang }: Props) {
   const sources = JSON.parse(tool.sources || '[]') as string[]
   const isApproved = tool.status === 'approved'
   const isSkipped = tool.status === 'skipped'
+  const isZh = lang === 'zh'
+  const title = (isZh && tool.title_zh) ? tool.title_zh : tool.title
+  const desc = (isZh && tool.description_zh) ? tool.description_zh : tool.description
 
   return (
     <div style={{
@@ -34,8 +37,11 @@ export default function ToolCard({ tool, onAction, lang }: Props) {
           </div>
           <a href={tool.url} target="_blank" rel="noopener"
              style={{ fontSize: 15, fontWeight: 600, color: '#333', textDecoration: 'none' }}>
-            {tool.title}
+            {title}
           </a>
+          {isZh && tool.title_zh && (
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{tool.title}</div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {tool.status === 'pending' && (
@@ -64,9 +70,9 @@ export default function ToolCard({ tool, onAction, lang }: Props) {
           )}
         </div>
       </div>
-      {tool.description && (
+      {desc && (
         <p style={{ fontSize: 13, color: '#666', lineHeight: 1.5, margin: '8px 0' }}>
-          {tool.description.slice(0, 200)}
+          {desc.slice(0, 300)}
         </p>
       )}
       <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#999' }}>

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS tools (
     first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'skipped', 'deferred', 'archived')),
     sources TEXT DEFAULT '[]',
+    title_zh TEXT,
+    description_zh TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
