@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, Tool, AiPick, DigestItem } from '../api/client'
-import { Lang, td } from '../i18n'
+import { Lang } from '../i18n'
 import ToolRow from '../components/discover/ToolRow'
 import ToolDetail from '../components/discover/ToolDetail'
 import SectionCarousel from '../components/discover/SectionCarousel'
@@ -178,7 +178,7 @@ export default function Discover({ lang }: { lang: Lang }) {
                       </p>
                     </div>
                   ))}
-                  {hotNews.map((d, i) => (
+                  {hotNews.map((d) => (
                     <div key={d.id} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
                       <span style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
                         🔥 {isZh ? '热点' : 'Hot'}
