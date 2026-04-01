@@ -124,7 +124,33 @@ export const api = {
   generateAiPicks: () =>
     request<{ count: number; picks: AiPick[] }>('/discover/ai-picks/generate', { method: 'POST' }),
   getTodayTools: () => request<Tool[]>('/discover/today'),
+  getWeekTools: () => request<Tool[]>('/discover/week'),
+  getDigest: () => request<DigestItem[]>('/discover/digest'),
   getRandomTool: () => request<Tool>('/discover/random'),
+
+  // User messages
+  postMessage: (content: string, nickname?: string) =>
+    request<{ ok: boolean; id: number }>('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ content, nickname }),
+    }),
+  getMessages: () => request<UserMessage[]>('/messages'),
+}
+
+export interface DigestItem {
+  id: number
+  tool_id: number | null
+  digest_type: string
+  summary: string
+  summary_en: string
+  created_date: string
+}
+
+export interface UserMessage {
+  id: number
+  content: string
+  nickname: string
+  created_at: string
 }
 
 export interface AiPick extends Tool {

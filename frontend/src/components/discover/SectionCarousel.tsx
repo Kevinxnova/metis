@@ -147,6 +147,19 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
       document.head.appendChild(style)
     }
 
+    const smoothRef = useRef<HTMLDivElement>(null)
+
+    const scrollSmooth = (dir: number) => {
+      const el = smoothRef.current
+      if (!el) return
+      // Jump the inner track
+      const shift = 334 * dir
+      const current = parseFloat(el.style.marginLeft || '0')
+      el.style.transition = 'margin-left 0.4s ease'
+      el.style.marginLeft = `${current - shift}px`
+      setTimeout(() => { el.style.transition = '' }, 400)
+    }
+
     return (
       <div
         style={{ overflow: 'hidden', position: 'relative' }}
@@ -154,15 +167,30 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
         onMouseLeave={() => setPaused(false)}
       >
         {/* Fade edges */}
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(90deg, #0a0a0a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(270deg, #0a0a0a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(90deg, #050510, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(270deg, #050510, transparent)', zIndex: 2, pointerEvents: 'none' }} />
 
-        <div style={{
+        {/* Arrow buttons */}
+        <button onClick={() => scrollSmooth(-1)} style={{
+          position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 3,
+          width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer',
+          background: 'rgba(255,255,255,0.08)', color: '#aaa', fontSize: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)', opacity: paused ? 1 : 0, transition: 'opacity 0.2s',
+        }}>‹</button>
+        <button onClick={() => scrollSmooth(1)} style={{
+          position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 3,
+          width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer',
+          background: 'rgba(255,255,255,0.08)', color: '#aaa', fontSize: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)', opacity: paused ? 1 : 0, transition: 'opacity 0.2s',
+        }}>›</button>
+
+        <div ref={smoothRef} style={{
           display: 'flex', gap: 14, width: 'max-content',
           animation: `metis-scroll ${duration}s linear infinite`,
           animationPlayState: paused ? 'paused' : 'running',
         }}>
-          {/* Original + duplicate for seamless loop */}
           {tools.map((t, i) => renderCard(t, i))}
           {tools.map((t, i) => renderCard(t, i + tools.length))}
         </div>

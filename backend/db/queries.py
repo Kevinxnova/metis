@@ -121,9 +121,8 @@ def get_metis_picks() -> list[dict]:
 
 
 def get_today_tools() -> list[dict]:
-    """Get today's tools sorted by metrics. Falls back to latest 2 days if today is empty."""
+    """Get today's tools sorted by metrics. Falls back to latest tools if today is empty."""
     with get_db() as db:
-        # Try today first
         rows = db.execute(
             """SELECT *,
                 COALESCE(
@@ -137,7 +136,6 @@ def get_today_tools() -> list[dict]:
             ORDER BY sort_score DESC"""
         ).fetchall()
 
-        # Fallback: latest 100 tools if today is empty
         if not rows:
             rows = db.execute(
                 """SELECT *,
@@ -153,6 +151,65 @@ def get_today_tools() -> list[dict]:
             ).fetchall()
 
         return _enrich_with_takes(db, [dict(row) for row in rows])
+
+
+def get_week_tools() -> list[dict]:
+    """Get this week's tools (last 7 days), sorted by metrics."""
+    with get_db() as db:
+        rows = db.execute(
+            """SELECT *,
+                COALESCE(
+                    json_extract(metrics, '$.stars'),
+                    json_extract(metrics, '$.points'),
+                    json_extract(metrics, '$.votes'),
+                    0
+                ) as sort_score
+            FROM tools
+            WHERE first_seen >= date('now', '-7 days')
+            ORDER BY sort_score DESC"""
+        ).fetchall()
+        return _enrich_with_takes(db, [dict(row) for row in rows])
+
+
+# --- User Messages ---
+
+def save_user_message(content: str, nickname: str = "") -> int:
+    with get_db() as db:
+        cursor = db.execute(
+            "INSERT INTO user_messages (content, nickname) VALUES (?, ?)",
+            (content, nickname)
+        )
+        return cursor.lastrowid
+
+
+def get_user_messages(limit: int = 50) -> list[dict]:
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM user_messages ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+# --- Daily Digest ---
+
+def save_daily_digest(entries: list[dict]):
+    with get_db() as db:
+        for e in entries:
+            db.execute(
+                "INSERT INTO daily_digest (tool_id, digest_type, summary, summary_en, created_date) VALUES (?, ?, ?, ?, date('now'))",
+                (e.get("tool_id"), e["type"], e["summary"], e.get("summary_en", ""))
+            )
+
+
+def get_daily_digest(date: str | None = None) -> list[dict]:
+    with get_db() as db:
+        if date:
+            rows = db.execute("SELECT * FROM daily_digest WHERE created_date = ? ORDER BY digest_type, id", (date,)).fetchall()
+        else:
+            rows = db.execute("SELECT * FROM daily_digest WHERE created_date = date('now') ORDER BY digest_type, id").fetchall()
+            if not rows:
+                rows = db.execute("SELECT * FROM daily_digest ORDER BY created_date DESC, digest_type, id LIMIT 10").fetchall()
+        return [dict(row) for row in rows]
 
 
 def get_random_tool() -> dict | None:

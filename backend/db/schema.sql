@@ -46,6 +46,23 @@ CREATE TABLE IF NOT EXISTS issues (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    nickname TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS daily_digest (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_id INTEGER,
+    digest_type TEXT NOT NULL CHECK(digest_type IN ('tool_pick', 'hot_news')),
+    summary TEXT NOT NULL,
+    summary_en TEXT DEFAULT '',
+    created_date TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS scrape_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,

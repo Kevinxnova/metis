@@ -12,6 +12,8 @@ from backend.db.queries import (
     get_tools, get_tool, update_tool_status, log_curation, merge_tools,
     get_category_counts, set_featured, set_metis_pick,
     get_featured_tools, get_metis_picks, get_today_tools, get_random_tool,
+    get_week_tools, save_user_message, get_user_messages,
+    get_daily_digest,
     get_issues, get_issue, create_issue, mark_issue_sent,
     get_latest_scrape_runs, get_untranslated_tools, save_translation,
 )
@@ -270,12 +272,40 @@ def today():
     return jsonify(get_today_tools())
 
 
+@app.route("/api/discover/week")
+def week():
+    return jsonify(get_week_tools())
+
+
+@app.route("/api/discover/digest")
+def digest():
+    return jsonify(get_daily_digest())
+
+
 @app.route("/api/discover/random")
 def random_tool():
     tool = get_random_tool()
     if not tool:
         return jsonify({"detail": "No tools found"}), 404
     return jsonify(tool)
+
+
+# --- User Messages ---
+
+@app.route("/api/messages", methods=["POST"])
+def post_message():
+    data = request.get_json() or {}
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"detail": "Content required"}), 400
+    nickname = (data.get("nickname") or "").strip()
+    msg_id = save_user_message(content, nickname)
+    return jsonify({"ok": True, "id": msg_id})
+
+
+@app.route("/api/messages")
+def list_messages():
+    return jsonify(get_user_messages())
 
 
 # Init DB on import
