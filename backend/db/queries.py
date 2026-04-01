@@ -121,8 +121,9 @@ def get_metis_picks() -> list[dict]:
 
 
 def get_today_tools() -> list[dict]:
-    """Get today's tools sorted by metrics (stars/points/votes) descending."""
+    """Get today's tools sorted by metrics. Falls back to latest 2 days if today is empty."""
     with get_db() as db:
+        # Try today first
         rows = db.execute(
             """SELECT *,
                 COALESCE(
@@ -135,6 +136,22 @@ def get_today_tools() -> list[dict]:
             WHERE date(first_seen) = date('now')
             ORDER BY sort_score DESC"""
         ).fetchall()
+
+        # Fallback: latest 100 tools if today is empty
+        if not rows:
+            rows = db.execute(
+                """SELECT *,
+                    COALESCE(
+                        json_extract(metrics, '$.stars'),
+                        json_extract(metrics, '$.points'),
+                        json_extract(metrics, '$.votes'),
+                        0
+                    ) as sort_score
+                FROM tools
+                ORDER BY first_seen DESC, sort_score DESC
+                LIMIT 100"""
+            ).fetchall()
+
         return _enrich_with_takes(db, [dict(row) for row in rows])
 
 

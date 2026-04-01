@@ -47,6 +47,15 @@ def get_cached_recommendations(date: str | None = None) -> list[dict]:
             ORDER BY r.score DESC
         """, params).fetchall()
 
+        # Fallback: if no results for today, get most recent
+        if not rows and date is None:
+            rows = db.execute("""
+                SELECT r.*, t.* FROM ai_recommendations r
+                JOIN tools t ON r.tool_id = t.id
+                ORDER BY r.created_date DESC, r.score DESC
+                LIMIT 10
+            """).fetchall()
+
         results = []
         for row in rows:
             d = dict(row)
