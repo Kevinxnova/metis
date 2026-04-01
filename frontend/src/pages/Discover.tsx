@@ -138,6 +138,27 @@ export default function Discover({ lang }: { lang: Lang }) {
                 </button>
               ) : undefined}
             >
+              {/* Quick summary list */}
+              {aiPicks.length > 0 && (
+                <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {aiPicks.map(p => {
+                    const name = (isZh && p.title_zh) ? p.title_zh : p.title
+                    const reason = (isZh || !p.ai_reason_en) ? p.ai_reason : p.ai_reason_en
+                    // Take first sentence only
+                    const short = reason.split(/[.。!！]/)[0]
+                    return (
+                      <div key={p.id} onClick={() => setSelectedTool(p)} style={{
+                        fontSize: 13, color: '#aaa', cursor: 'pointer', lineHeight: 1.5,
+                        padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      }}>
+                        <span style={{ color: '#60a5fa', fontWeight: 600 }}>{name}</span>
+                        <span style={{ color: '#555' }}> — </span>
+                        <span>{short}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <SectionCarousel tools={aiPicks} lang={lang} onSelect={setSelectedTool} accentColor="#60a5fa" showAiInfo smooth />
             </Section>
 
