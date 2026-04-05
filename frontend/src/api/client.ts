@@ -29,6 +29,9 @@ export interface Tool {
   sources: string
   take?: string
   take_en?: string
+  discovery_category?: 'news' | 'ai_tool' | 'other' | null
+  short_summary?: string | null
+  short_summary_zh?: string | null
 }
 
 export interface CategoryCounts {

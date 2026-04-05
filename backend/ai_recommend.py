@@ -174,3 +174,99 @@ def generate_recommendations() -> list[dict]:
     except Exception as e:
         logger.error(f"AI recommendation failed: {e}")
         return []
+
+
+def categorize_and_summarize(tool_ids: list[int]) -> int:
+    """For each new tool, use MiniMax to assign discovery_category and short_summary.
+    Returns the number of tools successfully processed."""
+    if not tool_ids or not MINIMAX_API_KEY:
+        return 0
+
+    with get_db() as db:
+        rows = db.execute(
+            f"SELECT id, title, title_zh, description, description_zh, content_type, domain, source "
+            f"FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
+            tool_ids
+        ).fetchall()
+
+    if not rows:
+        return 0
+
+    tools = [dict(r) for r in rows]
+
+    tool_list = []
+    for t in tools:
+        tool_list.append({
+            "id": t["id"],
+            "title": t["title"],
+            "description": (t.get("description") or "")[:150],
+            "source": t.get("source", ""),
+            "content_type": t.get("content_type", "other"),
+            "domain": t.get("domain", "general"),
+        })
+
+    prompt = f"""你是 Metis，一个 AI 工具发现助手。请对以下 {len(tool_list)} 条内容分别做两件事：
+
+1. **分类** (discovery_category)，只能选以下三个值之一：
+   - "news"：AI 相关新闻，包括新模型发布、AI 公司融资、社区生态、行业报告、研究论文
+   - "ai_tool"：可直接使用的 AI 工具、AI 库、AI API、AI 模型、Agent 框架
+   - "other"：其他科技内容，非 AI 的开发工具、通用技术资讯、开源项目等
+
+2. **生成一行摘要**，格式："标题 — 简洁功能描述（10字以内）"
+   - short_summary：英文版，例如 "GStack — browser automation with AI skill library"
+   - short_summary_zh：中文版，例如 "GStack — 浏览器自动化，内置 AI skills 库"
+
+内容列表：
+{json.dumps(tool_list, ensure_ascii=False, indent=2)}
+
+严格按以下 JSON 格式返回，不要有其他文字：
+{{"results": [{{"id": 123, "discovery_category": "ai_tool", "short_summary": "...", "short_summary_zh": "..."}}]}}"""
+
+    try:
+        client = OpenAI(
+            api_key=MINIMAX_API_KEY,
+            base_url="https://api.minimax.chat/v1",
+        )
+        response = client.chat.completions.create(
+            model="MiniMax-M2.7-highspeed",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000,
+            temperature=0.3,
+        )
+        text = response.choices[0].message.content.strip()
+
+        import re
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        elif not text.startswith("{"):
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start >= 0 and end > start:
+                text = text[start:end]
+
+        data = json.loads(text)
+        results = data.get("results", [])
+
+        updated = 0
+        with get_db() as db:
+            for r in results:
+                tool_id = r.get("id")
+                category = r.get("discovery_category", "other")
+                if category not in ("news", "ai_tool", "other"):
+                    category = "other"
+                db.execute(
+                    "UPDATE tools SET discovery_category=?, short_summary=?, short_summary_zh=? WHERE id=?",
+                    (category, r.get("short_summary", ""), r.get("short_summary_zh", ""), tool_id)
+                )
+                updated += 1
+
+        logger.info(f"Categorized and summarized {updated} tools")
+        return updated
+
+    except Exception as e:
+        logger.error(f"categorize_and_summarize failed: {e}")
+        return 0

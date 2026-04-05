@@ -168,6 +168,9 @@ def init_db():
             ("content_type", "TEXT DEFAULT 'other'"), ("domain", "TEXT DEFAULT 'general'"),
             ("is_featured", "INTEGER DEFAULT 0"), ("is_metis_pick", "INTEGER DEFAULT 0"),
             ("take_en", "TEXT"),
+            ("discovery_category", "TEXT DEFAULT 'other'"),
+            ("short_summary", "TEXT"),
+            ("short_summary_zh", "TEXT"),
         ]:
             if col not in cols:
                 conn.execute(f"ALTER TABLE tools ADD COLUMN {col} {default}")

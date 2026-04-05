@@ -17,7 +17,7 @@ SCRAPERS = [
 
 
 def run_all():
-    """Run all scrapers and print results."""
+    """Run all scrapers and trigger AI recommendations if new tools were found."""
     init_db()
     results = []
     for scraper in SCRAPERS:
@@ -36,6 +36,27 @@ def run_all():
     total_new = sum(r["tools_new"] for r in results)
     total_found = sum(r["tools_found"] for r in results)
     logger.info(f"Scrape complete: {total_found} total, {total_new} new tools")
+
+    if total_new > 0:
+        logger.info(f"New tools found, running AI recommendations...")
+        from backend.ai_recommend import generate_recommendations, categorize_and_summarize
+        from backend.db import get_db
+
+        # 获取今日新增且尚未生成摘要的工具 ID
+        with get_db() as db:
+            rows = db.execute(
+                "SELECT id FROM tools WHERE date(first_seen) = date('now') AND short_summary IS NULL"
+            ).fetchall()
+        new_ids = [r[0] for r in rows]
+
+        if new_ids:
+            logger.info(f"Categorizing and summarizing {len(new_ids)} new tools...")
+            n = categorize_and_summarize(new_ids)
+            logger.info(f"Categorized {n} tools")
+
+        picks = generate_recommendations()
+        logger.info(f"AI recommendations: {len(picks)} picks generated")
+
     return results
 
 
