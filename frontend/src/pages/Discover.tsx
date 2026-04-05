@@ -159,130 +159,59 @@ export default function Discover({ lang }: { lang: Lang }) {
               <SectionCarousel tools={aiPicks} lang={lang} onSelect={setSelectedTool} accentColor="#60a5fa" showAiInfo smooth />
             </Section>
 
-            {/* 4. 本周发现 — 三个模块 */}
+            {/* 4. 本周发现 — 三行可展开模块 */}
             {(() => {
-              const newsTools = weekTools.filter(t => t.discovery_category === 'news')
-              const aiTools = weekTools.filter(t => t.discovery_category === 'ai_tool')
-              const otherTools = weekTools.filter(t => t.discovery_category === 'other' || !t.discovery_category)
+              const sortByScore = (tools: Tool[]) => [...tools].sort((a, b) => {
+                const score = (t: Tool) => {
+                  try { const m = JSON.parse(t.metrics || '{}'); return m.stars || m.points || m.votes || 0 } catch { return 0 }
+                }
+                return score(b) - score(a)
+              })
 
-              const DiscoveryList = ({ tools, defaultCount = 6 }: { tools: Tool[], defaultCount?: number }) => {
-                const [expanded, setExpanded] = useState(false)
-                const shown = expanded ? tools : tools.slice(0, defaultCount)
-                return (
-                  <div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {shown.map(tool => {
-                        const summary = isZh
-                          ? (tool.short_summary_zh || tool.short_summary || tool.title_zh || tool.title)
-                          : (tool.short_summary || tool.title)
-                        return (
-                          <div key={tool.id} onClick={() => setSelectedTool(tool)} style={{
-                            fontSize: 13, color: '#aaa', cursor: 'pointer', lineHeight: 1.5,
-                            padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
-                            display: 'flex', alignItems: 'baseline', gap: 0,
-                          }}>
-                            <span style={{ color: '#ddd', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {isZh ? (tool.title_zh || tool.title) : tool.title}
-                            </span>
-                            {summary && summary !== tool.title && summary !== tool.title_zh && (
-                              <>
-                                <span style={{ color: '#444', margin: '0 6px' }}>—</span>
-                                <span style={{ color: '#666' }}>
-                                  {summary.includes('—') ? summary.split('—').slice(1).join('—').trim() : summary}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {tools.length > defaultCount && (
-                      <button onClick={() => setExpanded(!expanded)} style={{
-                        marginTop: 10, fontSize: 12, color: '#555', background: 'none', border: 'none', cursor: 'pointer',
-                      }}>
-                        {expanded
-                          ? (isZh ? '收起 ↑' : 'Collapse ↑')
-                          : (isZh ? `展开全部 ${tools.length} 条 ↓` : `Show all ${tools.length} ↓`)}
-                      </button>
-                    )}
-                  </div>
-                )
-              }
+              const newsTools = sortByScore(weekTools.filter(t => t.discovery_category === 'news'))
+              const aiTools = sortByScore(weekTools.filter(t => t.discovery_category === 'ai_tool'))
+              // Others = only items not already in news or ai_tool
+              const categorizedIds = new Set([...newsTools, ...aiTools].map(t => t.id))
+              const otherTools = sortByScore(weekTools.filter(t => !categorizedIds.has(t.id)))
+
+              const modules = [
+                { key: 'news',    icon: '📰', labelZh: 'AI 动态',  labelEn: 'AI News',  color: '#60a5fa', border: 'rgba(96,165,250,0.2)',   bg: 'rgba(96,165,250,0.05)',   tools: newsTools },
+                { key: 'ai_tool', icon: '🔧', labelZh: 'AI 工具',  labelEn: 'AI Tools', color: '#a78bfa', border: 'rgba(167,139,250,0.2)',  bg: 'rgba(167,139,250,0.05)', tools: aiTools },
+                { key: 'other',   icon: '🌐', labelZh: '其他',     labelEn: 'Others',   color: '#888',    border: 'rgba(255,255,255,0.1)',  bg: 'rgba(255,255,255,0.02)', tools: otherTools },
+              ]
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h2 style={{ fontSize: 18, fontWeight: 600, color: '#eee', margin: 0 }}>
-                        📡 {isZh ? '本周发现' : "This Week's Discoveries"}
-                      </h2>
-                      <p style={{ fontSize: 12, color: '#666', margin: '4px 0 0' }}>
-                        {isZh
-                          ? `本周共发现 ${weekTools.length} 条内容`
-                          : `${weekTools.length} items discovered this week`}
-                      </p>
-                    </div>
+                <Section
+                  icon="📡" title={isZh ? '本周发现' : "This Week's Discoveries"}
+                  subtitle={isZh ? `本周共发现 ${weekTools.length} 条内容` : `${weekTools.length} items discovered this week`}
+                  gradient="linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))"
+                  borderColor="rgba(255,255,255,0.08)"
+                  empty={weekTools.length === 0}
+                  emptyText={isZh ? '本周暂无新发现' : 'No discoveries this week'}
+                  action={weekTools.length > 0 ? (
                     <button onClick={async () => {
                       try { const tool = await api.getRandomTool(); setSelectedTool(tool) } catch {}
-                    }} style={{
-                      fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
-                      border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#aaa',
-                    }}>
+                    }} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#aaa' }}>
                       🎲 {isZh ? '随机一个' : 'Random'}
                     </button>
+                  ) : undefined}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'start' }}>
+                    {modules.map(mod => (
+                      <DiscoveryModule
+                        key={mod.key}
+                        icon={mod.icon}
+                        label={isZh ? mod.labelZh : mod.labelEn}
+                        color={mod.color}
+                        border={mod.border}
+                        bg={mod.bg}
+                        tools={mod.tools}
+                        isZh={isZh}
+                        onSelect={setSelectedTool}
+                      />
+                    ))}
                   </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: 12,
-                  }}>
-                    {/* 模块 1：AI 动态 */}
-                    <div style={{
-                      background: 'linear-gradient(135deg, rgba(96,165,250,0.06), rgba(96,165,250,0.02))',
-                      border: '1px solid rgba(96,165,250,0.15)',
-                      borderRadius: 12, padding: 16,
-                    }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#60a5fa', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        📰 {isZh ? 'AI 动态' : 'AI News'}
-                        <span style={{ fontSize: 11, color: '#444', fontWeight: 400 }}>{newsTools.length}</span>
-                      </h3>
-                      {newsTools.length === 0
-                        ? <p style={{ color: '#333', fontSize: 12, margin: 0 }}>{isZh ? '暂无动态' : 'No news yet'}</p>
-                        : <DiscoveryList tools={newsTools} />}
-                    </div>
-
-                    {/* 模块 2：AI 工具 */}
-                    <div style={{
-                      background: 'linear-gradient(135deg, rgba(167,139,250,0.06), rgba(167,139,250,0.02))',
-                      border: '1px solid rgba(167,139,250,0.15)',
-                      borderRadius: 12, padding: 16,
-                    }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#a78bfa', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        🔧 {isZh ? 'AI 工具' : 'AI Tools'}
-                        <span style={{ fontSize: 11, color: '#444', fontWeight: 400 }}>{aiTools.length}</span>
-                      </h3>
-                      {aiTools.length === 0
-                        ? <p style={{ color: '#333', fontSize: 12, margin: 0 }}>{isZh ? '暂无工具' : 'No tools yet'}</p>
-                        : <DiscoveryList tools={aiTools} />}
-                    </div>
-
-                    {/* 模块 3：其他 */}
-                    <div style={{
-                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 12, padding: 16,
-                    }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#888', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        🌐 {isZh ? '其他' : 'Others'}
-                        <span style={{ fontSize: 11, color: '#444', fontWeight: 400 }}>{otherTools.length}</span>
-                      </h3>
-                      {otherTools.length === 0
-                        ? <p style={{ color: '#333', fontSize: 12, margin: 0 }}>{isZh ? '暂无其他内容' : 'Nothing else yet'}</p>
-                        : <DiscoveryList tools={otherTools} />}
-                    </div>
-                  </div>
-                </div>
+                </Section>
               )
             })()}
           </div>
@@ -295,6 +224,85 @@ export default function Discover({ lang }: { lang: Lang }) {
       }}>
         Metis · {isZh ? '每天发现好工具' : 'Discover great tools daily'}
       </footer>
+    </div>
+  )
+}
+
+function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect }: {
+  icon: string; label: string; color: string; border: string; bg: string
+  tools: Tool[]; isZh: boolean; onSelect: (t: Tool) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const TOP = 5
+  const shown = expanded ? tools : tools.slice(0, TOP)
+
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, overflow: 'hidden' }}>
+      {/* Header row — always visible, click to expand */}
+      <div
+        onClick={() => tools.length > 0 && setExpanded(e => !e)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+          cursor: tools.length > 0 ? 'pointer' : 'default', userSelect: 'none',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>{icon}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color, flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 11, color: '#555' }}>{tools.length}</span>
+        {tools.length > 0 && (
+          <span style={{ fontSize: 11, color: '#555' }}>{expanded ? '↑' : '↓'}</span>
+        )}
+      </div>
+
+      {/* Items — shown when expanded or first TOP items */}
+      {tools.length === 0 ? (
+        <p style={{ color: '#333', fontSize: 12, margin: 0, padding: '0 16px 12px' }}>
+          {isZh ? '暂无内容' : 'Nothing yet'}
+        </p>
+      ) : (
+        <div style={{ padding: '0 16px 12px' }}>
+          {shown.map((tool, i) => {
+            const summary = isZh
+              ? (tool.short_summary_zh || tool.short_summary || '')
+              : (tool.short_summary || '')
+            const descPart = summary.includes('—')
+              ? summary.split('—').slice(1).join('—').trim()
+              : summary
+            return (
+              <div
+                key={tool.id}
+                onClick={() => onSelect(tool)}
+                style={{
+                  display: 'flex', alignItems: 'baseline', gap: 6,
+                  padding: '6px 0', borderTop: i === 0 ? `1px solid ${border}` : '1px solid rgba(255,255,255,0.04)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 11, color: '#555', flexShrink: 0, width: 16 }}>{i + 1}</span>
+                <span style={{ fontSize: 13, color: '#ddd', fontWeight: 500, flexShrink: 0 }}>
+                  {isZh ? (tool.title_zh || tool.title) : tool.title}
+                </span>
+                {descPart && (
+                  <>
+                    <span style={{ color: '#383838', flexShrink: 0 }}>—</span>
+                    <span style={{ fontSize: 12, color: '#666', lineHeight: 1.4 }}>{descPart}</span>
+                  </>
+                )}
+              </div>
+            )
+          })}
+          {tools.length > TOP && (
+            <button
+              onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+              style={{ marginTop: 8, fontSize: 12, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              {expanded
+                ? (isZh ? '收起 ↑' : 'Collapse ↑')
+                : (isZh ? `查看全部 ${tools.length} 条 ↓` : `Show all ${tools.length} ↓`)}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

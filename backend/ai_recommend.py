@@ -1,13 +1,21 @@
 """AI recommendation engine. Uses MiniMax to pick and explain today's best tools."""
 
 import json
+import re
 import logging
-from openai import OpenAI
+import urllib.request
+import ssl
+import certifi
 from backend.config import MINIMAX_API_KEY
 from backend.db.queries import get_today_tools
 from backend.db import get_db
 
 logger = logging.getLogger(__name__)
+
+_SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+
+MINIMAX_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
+MINIMAX_MODEL = "MiniMax-M2.7-highspeed"
 
 CACHE_TABLE = """
 CREATE TABLE IF NOT EXISTS ai_recommendations (
@@ -22,6 +30,44 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )
 """
+
+
+def _minimax_chat(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    """Call MiniMax native API and return response text."""
+    payload = json.dumps({
+        "model": MINIMAX_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }, ensure_ascii=False).encode("utf-8")
+
+    req = urllib.request.Request(
+        MINIMAX_URL,
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {MINIMAX_API_KEY}",
+            "Content-Type": "application/json",
+        }
+    )
+    resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=300)
+    data = json.loads(resp.read().decode("utf-8"))
+    return data["choices"][0]["message"]["content"].strip()
+
+
+def _extract_json(text: str) -> str:
+    """Strip think tags and extract JSON from response."""
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+        return text.strip()
+    if not text.startswith("{"):
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start >= 0 and end > start:
+            return text[start:end]
+    return text
 
 
 def _ensure_table():
@@ -85,12 +131,6 @@ def generate_recommendations() -> list[dict]:
         return []
 
     try:
-        client = OpenAI(
-            api_key=MINIMAX_API_KEY,
-            base_url="https://api.minimax.chat/v1",
-        )
-
-        # Build tool summaries
         tool_summaries = []
         for tool in today_tools[:50]:
             metrics = json.loads(tool.get("metrics", "{}"))
@@ -124,38 +164,13 @@ def generate_recommendations() -> list[dict]:
 严格按以下JSON格式返回，不要有其他文字：
 {{"picks": [{{"id": 123, "reason": "中文理由", "use_cases": "中文场景", "reason_en": "English reason", "use_cases_en": "English use cases", "score": 9}}]}}"""
 
-        response = client.chat.completions.create(
-            model="MiniMax-M2.7-highspeed",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-            temperature=0.7,
-        )
-
-        text = response.choices[0].message.content.strip()
-
-        # Strip <think>...</think> tags from reasoning models
-        import re
-        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
-
-        # Extract JSON from response
-        # Try: raw JSON, ```json block, or first { to last }
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-        elif not text.startswith("{"):
-            # Find JSON object in the text
-            start = text.find("{")
-            end = text.rfind("}") + 1
-            if start >= 0 and end > start:
-                text = text[start:end]
+        text = _minimax_chat(prompt, max_tokens=2000, temperature=0.7)
+        text = _extract_json(text)
 
         logger.info(f"MiniMax response (first 200 chars): {text[:200]}")
         data = json.loads(text)
         picks = data.get("picks", [])
 
-        # Cache results
         with get_db() as db:
             for pick in picks:
                 tool_id = pick["id"]
@@ -192,14 +207,12 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
     if not rows:
         return 0
 
-    tools = [dict(r) for r in rows]
-
     tool_list = []
-    for t in tools:
+    for t in [dict(r) for r in rows]:
         tool_list.append({
             "id": t["id"],
             "title": t["title"],
-            "description": (t.get("description") or "")[:150],
+            "description": (t.get("description") or "")[:80],
             "source": t.get("source", ""),
             "content_type": t.get("content_type", "other"),
             "domain": t.get("domain", "general"),
@@ -212,9 +225,9 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
    - "ai_tool"：可直接使用的 AI 工具、AI 库、AI API、AI 模型、Agent 框架
    - "other"：其他科技内容，非 AI 的开发工具、通用技术资讯、开源项目等
 
-2. **生成一行摘要**，格式："标题 — 简洁功能描述（10字以内）"
-   - short_summary：英文版，例如 "GStack — browser automation with AI skill library"
-   - short_summary_zh：中文版，例如 "GStack — 浏览器自动化，内置 AI skills 库"
+2. **生成一行摘要**，格式："产品/项目名 — 功能概述"
+   - short_summary：英文版，约50个字符，例如 "GStack — headless browser automation with built-in AI skills library"
+   - short_summary_zh：中文版，约50个汉字，例如 "GStack — 无头浏览器自动化框架，内置 AI skills 技能库，可提升模型执行效果"
 
 内容列表：
 {json.dumps(tool_list, ensure_ascii=False, indent=2)}
@@ -223,30 +236,8 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
 {{"results": [{{"id": 123, "discovery_category": "ai_tool", "short_summary": "...", "short_summary_zh": "..."}}]}}"""
 
     try:
-        client = OpenAI(
-            api_key=MINIMAX_API_KEY,
-            base_url="https://api.minimax.chat/v1",
-        )
-        response = client.chat.completions.create(
-            model="MiniMax-M2.7-highspeed",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-            temperature=0.3,
-        )
-        text = response.choices[0].message.content.strip()
-
-        import re
-        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-        elif not text.startswith("{"):
-            start = text.find("{")
-            end = text.rfind("}") + 1
-            if start >= 0 and end > start:
-                text = text[start:end]
+        text = _minimax_chat(prompt, max_tokens=16000, temperature=0.3)
+        text = _extract_json(text)
 
         data = json.loads(text)
         results = data.get("results", [])
