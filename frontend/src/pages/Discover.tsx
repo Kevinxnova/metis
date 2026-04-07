@@ -196,7 +196,7 @@ export default function Discover({ lang }: { lang: Lang }) {
                     </button>
                   ) : undefined}
                 >
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {modules.map(mod => (
                       <DiscoveryModule
                         key={mod.key}
