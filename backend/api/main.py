@@ -16,6 +16,7 @@ from backend.db.queries import (
     get_daily_digest,
     get_issues, get_issue, create_issue, mark_issue_sent,
     get_latest_scrape_runs, get_untranslated_tools, save_translation,
+    get_daily_news, get_daily_news_list,
 )
 from backend.translate import translate_tool
 from backend.email.sender import compose_email, send_via_buttondown
@@ -306,6 +307,34 @@ def post_message():
 @app.route("/api/messages")
 def list_messages():
     return jsonify(get_user_messages())
+
+
+# --- AI Daily News ---
+
+@app.route("/api/daily-news")
+def daily_news():
+    date = request.args.get("date")
+    news = get_daily_news(date)
+    if not news:
+        return jsonify({"detail": "No daily news available"}), 404
+    return jsonify(news)
+
+
+@app.route("/api/daily-news/list")
+def daily_news_list():
+    limit = int(request.args.get("limit", 7))
+    offset = int(request.args.get("offset", 0))
+    return jsonify(get_daily_news_list(limit, offset))
+
+
+@app.route("/api/daily-news/generate", methods=["POST"])
+def generate_daily_news_route():
+    from backend.daily_news import generate_daily_news
+    force = request.args.get("force", "false").lower() == "true"
+    result = generate_daily_news(force=force)
+    if not result:
+        return jsonify({"detail": "Generation failed — check logs or news availability"}), 500
+    return jsonify({"ok": True, "news": result})
 
 
 # Init DB on import

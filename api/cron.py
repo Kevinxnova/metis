@@ -137,10 +137,16 @@ def cron():
     from backend.ai_recommend import generate_recommendations
     ai_picks = generate_recommendations()
 
+    # Generate AI daily news briefing
+    from backend.daily_news import generate_daily_news as gen_daily_news
+    daily_news_result = gen_daily_news()
+    daily_news_ok = daily_news_result is not None
+
     return jsonify({
         "scrape": results,
         "classified": classified,
         "translated": translated,
         "digest": len(digest),
         "ai_picks": len(ai_picks),
+        "daily_news": daily_news_ok,
     })
