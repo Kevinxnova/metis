@@ -58,6 +58,7 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
   const today = getLocalToday()
   const year = 2026
   const months = lang === 'zh' ? MONTHS_ZH : MONTHS_EN
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light'
 
   // Build calendar: 12 months, each with its days
   const calendar = useMemo(() => {
@@ -94,8 +95,10 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-            background: '#fff',
-            boxShadow: '0 0 6px 2px rgba(167,139,250,0.5), 0 0 12px 4px rgba(96,165,250,0.3)',
+            background: isDark ? '#fff' : 'var(--accent-purple)',
+            boxShadow: isDark
+              ? '0 0 6px 2px rgba(167,139,250,0.5), 0 0 12px 4px rgba(96,165,250,0.3)'
+              : 'none',
           }} />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {publishedCount} {lang === 'zh' ? '期已发布' : publishedCount === 1 ? 'issue' : 'issues'}
@@ -146,13 +149,17 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
                       position: 'relative',
                       // Base styles by state
                       ...(isPublished ? {
-                        background: '#fff',
-                        boxShadow: isSelected
-                          ? '0 0 8px 3px rgba(167,139,250,0.7), 0 0 16px 6px rgba(96,165,250,0.4)'
-                          : '0 0 4px 1px rgba(167,139,250,0.4), 0 0 8px 3px rgba(96,165,250,0.2)',
+                        background: isDark ? '#fff' : 'var(--accent-purple)',
+                        boxShadow: isDark
+                          ? (isSelected
+                            ? '0 0 8px 3px rgba(167,139,250,0.7), 0 0 16px 6px rgba(96,165,250,0.4)'
+                            : '0 0 4px 1px rgba(167,139,250,0.4), 0 0 8px 3px rgba(96,165,250,0.2)')
+                          : 'none',
                       } : isToday ? {
                         background: 'transparent',
-                        boxShadow: '0 0 0 1px rgba(167,139,250,0.5) inset',
+                        boxShadow: isDark
+                          ? '0 0 0 1px rgba(167,139,250,0.5) inset'
+                          : '0 0 0 1px var(--accent-purple) inset',
                       } : isFuture ? {
                         background: 'var(--bg-hover)',
                       } : isPast ? {
