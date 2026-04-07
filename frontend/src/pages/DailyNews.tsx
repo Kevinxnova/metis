@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { api, DailyNews as DailyNewsType, DailyNewsMeta } from '../api/client'
 import { Lang, t } from '../i18n'
 
@@ -25,6 +25,10 @@ function getLocalToday(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const tagLabel = (tag: string, lang: string): string => {
   const map: Record<string, Record<string, string>> = {
     '模型发布': { zh: '模型发布', en: 'Model' },
@@ -38,6 +42,138 @@ const tagLabel = (tag: string, lang: string): string => {
   return map[tag]?.[lang] || tag
 }
 
+const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+const MONTHS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+// ─── Year Overview Calendar ──────────────────────────────────────────────────
+
+interface YearOverviewProps {
+  publishedDates: Set<string>
+  currentDate: string
+  onSelectDate: (date: string) => void
+  lang: Lang
+}
+
+function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearOverviewProps) {
+  const today = getLocalToday()
+  const year = 2026
+  const months = lang === 'zh' ? MONTHS_ZH : MONTHS_EN
+
+  // Build calendar: 12 months, each with its days
+  const calendar = useMemo(() => {
+    const result: { month: number; label: string; days: { date: string; dayOfMonth: number }[] }[] = []
+    for (let m = 0; m < 12; m++) {
+      const daysInMonth = new Date(year, m + 1, 0).getDate()
+      const days: { date: string; dayOfMonth: number }[] = []
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(year, m, d)
+        days.push({ date: toDateStr(dateObj), dayOfMonth: d })
+      }
+      result.push({ month: m, label: months[m], days })
+    }
+    return result
+  }, [lang])
+
+  const publishedCount = publishedDates.size
+
+  return (
+    <div style={{
+      background: '#0a0a1a',
+      borderRadius: 12,
+      padding: '20px 20px 16px',
+      border: '1px solid #1a1a2e',
+      marginBottom: 32,
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0' }}>
+            {year} {lang === 'zh' ? '年度概览' : 'Overview'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+            background: '#fff',
+            boxShadow: '0 0 6px 2px rgba(167,139,250,0.5), 0 0 12px 4px rgba(96,165,250,0.3)',
+          }} />
+          <span style={{ fontSize: 11, color: '#666' }}>
+            {publishedCount} {lang === 'zh' ? '期已发布' : publishedCount === 1 ? 'issue' : 'issues'}
+          </span>
+        </div>
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(12, 1fr)',
+        gap: 4,
+      }}>
+        {calendar.map(({ month, label, days }) => (
+          <div key={month} style={{ minWidth: 0 }}>
+            {/* Month label */}
+            <div style={{
+              fontSize: 9, textAlign: 'center',
+              marginBottom: 4, letterSpacing: 0.5,
+              fontWeight: month === new Date().getMonth() ? 600 : 400,
+              color: month === new Date().getMonth() ? '#888' : '#444',
+            }}>
+              {label}
+            </div>
+            {/* Days grid: wrap circles in rows */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 1.5,
+              justifyContent: 'center',
+            }}>
+              {days.map(({ date }) => {
+                const isPublished = publishedDates.has(date)
+                const isSelected = date === currentDate
+                const isToday = date === today
+                const isFuture = date > today
+                const isPast = date < today
+
+                return (
+                  <div
+                    key={date}
+                    onClick={isPublished ? () => onSelectDate(date) : undefined}
+                    title={`${date}${isPublished ? (lang === 'zh' ? ' (已发布)' : ' (published)') : ''}`}
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      cursor: isPublished ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      // Base styles by state
+                      ...(isPublished ? {
+                        background: '#fff',
+                        boxShadow: isSelected
+                          ? '0 0 8px 3px rgba(167,139,250,0.7), 0 0 16px 6px rgba(96,165,250,0.4)'
+                          : '0 0 4px 1px rgba(167,139,250,0.4), 0 0 8px 3px rgba(96,165,250,0.2)',
+                      } : isToday ? {
+                        background: 'transparent',
+                        boxShadow: '0 0 0 1px rgba(167,139,250,0.5) inset',
+                      } : isFuture ? {
+                        background: 'rgba(255,255,255,0.03)',
+                      } : isPast ? {
+                        background: 'rgba(255,255,255,0.06)',
+                      } : {
+                        background: 'rgba(255,255,255,0.06)',
+                      }),
+                    }}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
 export default function DailyNews({ lang }: { lang: Lang }) {
   const [news, setNews] = useState<DailyNewsType | null>(null)
   const [availableDates, setAvailableDates] = useState<string[]>([])
@@ -49,11 +185,10 @@ export default function DailyNews({ lang }: { lang: Lang }) {
 
   // Load available dates on mount
   useEffect(() => {
-    api.getDailyNewsList(30, 0)
+    api.getDailyNewsList(365, 0)
       .then(list => {
         const dates = list.map((m: DailyNewsMeta) => m.news_date)
         setAvailableDates(dates)
-        // dates are sorted DESC from API, index 0 = latest
         if (dates.length > 0) {
           setDateIndex(0)
         }
@@ -64,7 +199,6 @@ export default function DailyNews({ lang }: { lang: Lang }) {
   // Load news when dateIndex changes
   useEffect(() => {
     if (availableDates.length === 0) {
-      // No dates available yet — try loading latest without date param
       setLoading(true)
       api.getDailyNews()
         .then(data => { setNews(data); setLoading(false) })
@@ -83,20 +217,22 @@ export default function DailyNews({ lang }: { lang: Lang }) {
   }, [dateIndex, availableDates])
 
   const goPrev = () => {
-    if (dateIndex < availableDates.length - 1) {
-      setDateIndex(i => i + 1)
-    }
+    if (dateIndex < availableDates.length - 1) setDateIndex(i => i + 1)
   }
 
   const goNext = () => {
-    if (dateIndex > 0) {
-      setDateIndex(i => i - 1)
-    }
+    if (dateIndex > 0) setDateIndex(i => i - 1)
+  }
+
+  const handleCalendarSelect = (date: string) => {
+    const idx = availableDates.indexOf(date)
+    if (idx >= 0) setDateIndex(idx)
   }
 
   const hasPrev = dateIndex < availableDates.length - 1
   const hasNext = dateIndex > 0
   const currentDate = availableDates[dateIndex] || news?.news_date || getLocalToday()
+  const publishedSet = useMemo(() => new Set(availableDates), [availableDates])
 
   return (
     <div style={{ background: '#050510', minHeight: '100vh', color: '#fff' }}>
@@ -122,7 +258,15 @@ export default function DailyNews({ lang }: { lang: Lang }) {
           {t(lang, 'dailyNewsSubtitle')}
         </p>
 
-        {/* Date Navigation — jump between available issues */}
+        {/* Year Overview Calendar */}
+        <YearOverview
+          publishedDates={publishedSet}
+          currentDate={currentDate}
+          onSelectDate={handleCalendarSelect}
+          lang={lang}
+        />
+
+        {/* Date Navigation */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32,
           padding: '8px 0', borderBottom: '1px solid #1a1a2e',
