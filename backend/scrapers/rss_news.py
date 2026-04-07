@@ -4,10 +4,12 @@ import logging
 import re
 from datetime import datetime, timezone, timedelta
 
+import html
 import feedparser
 import httpx
 
 from backend.scrapers.base import BaseScraper, RawTool
+from backend.config import SCRAPE_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,6 @@ RSS_FEEDS = [
 ]
 
 _TAG_RE = re.compile(r"<[^>]+>")
-_FETCH_TIMEOUT = 15  # seconds
 _LOOKBACK_HOURS = 48
 
 _HEADERS = {
@@ -35,10 +36,12 @@ _HEADERS = {
 
 
 def _strip_html(text: str) -> str:
-    """Remove HTML tags and collapse whitespace."""
+    """Remove HTML tags, decode entities, and collapse whitespace."""
     if not text:
         return ""
-    return _TAG_RE.sub(" ", text).strip()
+    text = _TAG_RE.sub(" ", text)
+    text = html.unescape(text)
+    return " ".join(text.split())
 
 
 def _entry_published_dt(entry) -> datetime | None:
@@ -72,22 +75,21 @@ class RSSNewsScraper(BaseScraper):
     def _fetch_feed(self, label: str, feed_url: str, cutoff: datetime) -> list[RawTool]:
         """Fetch and parse a single RSS feed, returning RawTools newer than cutoff."""
         # Use httpx so we can set a custom User-Agent (many feeds block feedparser's default)
-        resp = httpx.get(feed_url, headers=_HEADERS, timeout=_FETCH_TIMEOUT, follow_redirects=True)
+        resp = httpx.get(feed_url, headers=_HEADERS, timeout=SCRAPE_TIMEOUT_SECONDS, follow_redirects=True)
         resp.raise_for_status()
 
-        feed = feedparser.parse(resp.text)
+        feed = feedparser.parse(resp.content)
 
         if feed.bozo and not feed.entries:
             logger.warning(f"RSS feed '{label}' parsed with error and has no entries: {feed.bozo_exception}")
             return []
 
         tools: list[RawTool] = []
-        source_label = feed.feed.get("title", label) or label
 
         for entry in feed.entries:
             published = _entry_published_dt(entry)
-            if published is not None and published < cutoff:
-                continue  # too old
+            if published is None or published < cutoff:
+                continue
 
             url = entry.get("link", "").strip()
             title = _strip_html(entry.get("title", "")).strip()
