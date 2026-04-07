@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
     ran_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS ai_daily_news (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    news_date TEXT NOT NULL UNIQUE,
+    headlines TEXT NOT NULL DEFAULT '[]',
+    quick_bites TEXT NOT NULL DEFAULT '[]',
+    editor_take TEXT DEFAULT '',
+    editor_take_en TEXT DEFAULT '',
+    source_tool_ids TEXT DEFAULT '[]',
+    model TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_news_date ON ai_daily_news(news_date);
+
 CREATE INDEX IF NOT EXISTS idx_tools_status ON tools(status);
 CREATE INDEX IF NOT EXISTS idx_tools_first_seen ON tools(first_seen);
 CREATE INDEX IF NOT EXISTS idx_tools_dedup_key ON tools(dedup_key);

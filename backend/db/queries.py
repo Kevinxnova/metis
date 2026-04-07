@@ -423,3 +423,74 @@ def get_latest_scrape_runs() -> list[dict]:
             ORDER BY ran_at DESC
         """).fetchall()
         return [dict(row) for row in rows]
+
+
+# --- AI Daily News ---
+
+def save_daily_news(news_date: str, headlines: list, quick_bites: list,
+                    editor_take: str, editor_take_en: str,
+                    source_tool_ids: list, model: str) -> int:
+    """Save or update a daily news entry. Returns row id."""
+    with get_db() as db:
+        existing = db.execute(
+            "SELECT id FROM ai_daily_news WHERE news_date = ?", (news_date,)
+        ).fetchone()
+        if existing:
+            db.execute(
+                """UPDATE ai_daily_news
+                   SET headlines=?, quick_bites=?, editor_take=?, editor_take_en=?,
+                       source_tool_ids=?, model=?
+                   WHERE news_date=?""",
+                (json.dumps(headlines, ensure_ascii=False),
+                 json.dumps(quick_bites, ensure_ascii=False),
+                 editor_take, editor_take_en,
+                 json.dumps(source_tool_ids), model, news_date)
+            )
+            return existing["id"]
+        else:
+            cursor = db.execute(
+                """INSERT INTO ai_daily_news
+                   (news_date, headlines, quick_bites, editor_take, editor_take_en, source_tool_ids, model)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (news_date,
+                 json.dumps(headlines, ensure_ascii=False),
+                 json.dumps(quick_bites, ensure_ascii=False),
+                 editor_take, editor_take_en,
+                 json.dumps(source_tool_ids), model)
+            )
+            return cursor.lastrowid
+
+
+def get_daily_news(date: str | None = None) -> dict | None:
+    """Get daily news for a specific date (default today). Falls back to latest."""
+    with get_db() as db:
+        if date:
+            row = db.execute(
+                "SELECT * FROM ai_daily_news WHERE news_date = ?", (date,)
+            ).fetchone()
+        else:
+            row = db.execute(
+                "SELECT * FROM ai_daily_news WHERE news_date = date('now')"
+            ).fetchone()
+            if not row:
+                row = db.execute(
+                    "SELECT * FROM ai_daily_news ORDER BY news_date DESC LIMIT 1"
+                ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["headlines"] = json.loads(d["headlines"])
+        d["quick_bites"] = json.loads(d["quick_bites"])
+        d["source_tool_ids"] = json.loads(d["source_tool_ids"])
+        return d
+
+
+def get_daily_news_list(limit: int = 7, offset: int = 0) -> list[dict]:
+    """Get recent daily news entries (metadata only, no full content)."""
+    with get_db() as db:
+        rows = db.execute(
+            """SELECT id, news_date, editor_take, editor_take_en, model, created_at
+               FROM ai_daily_news ORDER BY news_date DESC LIMIT ? OFFSET ?""",
+            (limit, offset)
+        ).fetchall()
+        return [dict(row) for row in rows]
