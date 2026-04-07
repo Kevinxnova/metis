@@ -38,14 +38,24 @@ def insert_tool(url: str, dedup_key: str, title: str, description: str,
 
 
 def _enrich_with_takes(db, tools: list[dict]) -> list[dict]:
-    """Add the latest take_text from curation_log to each tool, plus take_en from tools table."""
+    """Add the latest take_text from curation_log to each tool (single batch query)."""
+    if not tools:
+        return tools
+    ids = [t["id"] for t in tools]
+    placeholders = ",".join("?" * len(ids))
+    rows = db.execute(
+        f"SELECT tool_id, take_text FROM curation_log "
+        f"WHERE tool_id IN ({placeholders}) AND take_text IS NOT NULL AND take_text != '' "
+        f"ORDER BY created_at DESC",
+        ids
+    ).fetchall()
+    # Keep only the latest take per tool_id
+    takes: dict[int, str] = {}
+    for row in rows:
+        if row["tool_id"] not in takes:
+            takes[row["tool_id"]] = row["take_text"]
     for tool in tools:
-        take = db.execute(
-            "SELECT take_text FROM curation_log WHERE tool_id = ? AND take_text IS NOT NULL AND take_text != '' ORDER BY created_at DESC LIMIT 1",
-            (tool["id"],)
-        ).fetchone()
-        tool["take"] = take["take_text"] if take else None
-        # take_en is stored on the tools table directly
+        tool["take"] = takes.get(tool["id"])
         tool["take_en"] = tool.get("take_en") or None
     return tools
 
@@ -154,10 +164,10 @@ def get_today_tools() -> list[dict]:
 
 
 def get_week_tools() -> list[dict]:
-    """Get this week's tools (last 7 days), sorted by metrics."""
+    """Get this week's tools (last 7 days), sorted by metrics. Returns minimal fields for frontend."""
     with get_db() as db:
         rows = db.execute(
-            """SELECT *,
+            """SELECT id, title, title_zh, url, discovery_category, short_summary, short_summary_zh, metrics, first_seen,
                 COALESCE(
                     json_extract(metrics, '$.stars'),
                     json_extract(metrics, '$.points'),
@@ -166,9 +176,10 @@ def get_week_tools() -> list[dict]:
                 ) as sort_score
             FROM tools
             WHERE first_seen >= date('now', '-7 days')
-            ORDER BY sort_score DESC"""
+            ORDER BY sort_score DESC
+            LIMIT 500"""
         ).fetchall()
-        return _enrich_with_takes(db, [dict(row) for row in rows])
+        return [dict(row) for row in rows]
 
 
 # --- User Messages ---

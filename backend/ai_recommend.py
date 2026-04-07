@@ -191,73 +191,102 @@ def generate_recommendations() -> list[dict]:
         return []
 
 
+def _classify_batch(tool_list: list[dict]) -> list[dict]:
+    """Classify a batch of tools into news/ai_tool/other. Returns list of {id, category}."""
+    prompt = (
+        f"Classify these {len(tool_list)} items. Return ONLY JSON, no other text.\n"
+        f"discovery_category must be exactly one of: news / ai_tool / other\n"
+        f"- news: AI-related announcements, model releases, funding, industry events\n"
+        f"- ai_tool: AI-powered products, tools, libraries, frameworks\n"
+        f"- other: everything else (non-AI tech, general software, etc.)\n"
+        f"Data: {json.dumps(tool_list, ensure_ascii=False)}\n"
+        f'Return: {{"results":[{{"id":1,"discovery_category":"ai_tool"}}]}}'
+    )
+    text = _minimax_chat(prompt, max_tokens=10000, temperature=0.1)
+    text = _extract_json(text)
+    return json.loads(text).get("results", [])
+
+
+def _summarize_batch(tool_list: list[dict]) -> list[dict]:
+    """Generate short summaries for a batch of tools. Returns list of {id, short_summary, short_summary_zh}."""
+    # Keep prompt minimal — reasoning model needs low max_tokens to avoid spending all budget on thinking
+    items_json = json.dumps([{"id": t["id"], "title": t["title"]} for t in tool_list], ensure_ascii=False)
+    prompt = (
+        f"For each item output a one-line summary. JSON only.\n"
+        f"short_summary: English ≤60 chars. short_summary_zh: Chinese ≤20 chars.\n"
+        f"Items: {items_json}\n"
+        f'Format: {{"r":[{{"id":1,"s":"Name — what it does","z":"名称 — 功能"}}]}}'
+    )
+    text = _minimax_chat(prompt, max_tokens=6000, temperature=0.1)
+    text = _extract_json(text)
+    data = json.loads(text)
+    # support both key names
+    raw = data.get("r") or data.get("results") or []
+    return [{"id": item.get("id"), "short_summary": item.get("s", item.get("short_summary", "")),
+             "short_summary_zh": item.get("z", item.get("short_summary_zh", ""))} for item in raw]
+
+
 def categorize_and_summarize(tool_ids: list[int]) -> int:
     """For each new tool, use MiniMax to assign discovery_category and short_summary.
+    Step 1: classify all (large batches). Step 2: summarize by heat order (smaller batches).
     Returns the number of tools successfully processed."""
     if not tool_ids or not MINIMAX_API_KEY:
         return 0
 
     with get_db() as db:
         rows = db.execute(
-            f"SELECT id, title, title_zh, description, description_zh, content_type, domain, source "
-            f"FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
+            f"SELECT id, title, description FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
             tool_ids
         ).fetchall()
 
     if not rows:
         return 0
 
-    tool_list = []
-    for t in [dict(r) for r in rows]:
-        tool_list.append({
-            "id": t["id"],
-            "title": t["title"],
-            "description": (t.get("description") or "")[:80],
-            "source": t.get("source", ""),
-            "content_type": t.get("content_type", "other"),
-            "domain": t.get("domain", "general"),
-        })
+    tool_list = [{"id": r["id"], "title": r["title"], "description": (r["description"] or "")[:120]} for r in rows]
 
-    prompt = f"""你是 Metis，一个 AI 工具发现助手。请对以下 {len(tool_list)} 条内容分别做两件事：
-
-1. **分类** (discovery_category)，只能选以下三个值之一：
-   - "news"：AI 相关新闻，包括新模型发布、AI 公司融资、社区生态、行业报告、研究论文
-   - "ai_tool"：可直接使用的 AI 工具、AI 库、AI API、AI 模型、Agent 框架
-   - "other"：其他科技内容，非 AI 的开发工具、通用技术资讯、开源项目等
-
-2. **生成一行摘要**，格式："产品/项目名 — 功能概述"
-   - short_summary：英文版，约50个字符，例如 "GStack — headless browser automation with built-in AI skills library"
-   - short_summary_zh：中文版，约50个汉字，例如 "GStack — 无头浏览器自动化框架，内置 AI skills 技能库，可提升模型执行效果"
-
-内容列表：
-{json.dumps(tool_list, ensure_ascii=False, indent=2)}
-
-严格按以下 JSON 格式返回，不要有其他文字：
-{{"results": [{{"id": 123, "discovery_category": "ai_tool", "short_summary": "...", "short_summary_zh": "..."}}]}}"""
-
-    try:
-        text = _minimax_chat(prompt, max_tokens=16000, temperature=0.3)
-        text = _extract_json(text)
-
-        data = json.loads(text)
-        results = data.get("results", [])
-
-        updated = 0
-        with get_db() as db:
+    # Step 1: classify in batches of 50
+    categories: dict[int, str] = {}
+    CLASSIFY_BATCH = 50
+    for i in range(0, len(tool_list), CLASSIFY_BATCH):
+        batch = tool_list[i:i + CLASSIFY_BATCH]
+        try:
+            results = _classify_batch(batch)
             for r in results:
-                tool_id = r.get("id")
-                category = r.get("discovery_category", "other")
-                if category not in ("news", "ai_tool", "other"):
-                    category = "other"
-                db.execute(
-                    "UPDATE tools SET discovery_category=?, short_summary=?, short_summary_zh=? WHERE id=?",
-                    (category, r.get("short_summary", ""), r.get("short_summary_zh", ""), tool_id)
-                )
-                updated += 1
+                tid = r.get("id")
+                cat = r.get("discovery_category", "other")
+                if cat not in ("news", "ai_tool", "other"):
+                    cat = "other"
+                categories[tid] = cat
+        except Exception as e:
+            logger.error(f"classify batch {i}-{i+CLASSIFY_BATCH} failed: {e}")
 
-        logger.info(f"Categorized and summarized {updated} tools")
-        return updated
-
-    except Exception as e:
-        logger.error(f"categorize_and_summarize failed: {e}")
+    if not categories:
         return 0
+
+    # Persist categories
+    with get_db() as db:
+        for tid, cat in categories.items():
+            db.execute("UPDATE tools SET discovery_category=? WHERE id=?", (cat, tid))
+
+    # Step 2: summarize in batches of 20
+    SUMMARY_BATCH = 20
+    summarized = 0
+    for i in range(0, len(tool_list), SUMMARY_BATCH):
+        batch = [t for t in tool_list[i:i + SUMMARY_BATCH] if t["id"] in categories]
+        if not batch:
+            continue
+        try:
+            results = _summarize_batch(batch)
+            with get_db() as db:
+                for r in results:
+                    tid = r.get("id")
+                    db.execute(
+                        "UPDATE tools SET short_summary=?, short_summary_zh=? WHERE id=?",
+                        (r.get("short_summary", ""), r.get("short_summary_zh", ""), tid)
+                    )
+                    summarized += 1
+        except Exception as e:
+            logger.error(f"summarize batch {i}-{i+SUMMARY_BATCH} failed: {e}")
+
+    logger.info(f"Categorized {len(categories)} tools, summarized {summarized}")
+    return summarized
