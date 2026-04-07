@@ -66,6 +66,12 @@ export default function Discover({ lang }: { lang: Lang }) {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <a href="/daily-news" style={{
+              fontSize: 12, color: '#60a5fa', textDecoration: 'none',
+              padding: '4px 10px', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 4,
+            }}>
+              {isZh ? 'AI 日报' : 'AI Daily'}
+            </a>
             <a href="/community" style={{
               fontSize: 12, color: '#a78bfa', textDecoration: 'none',
               padding: '4px 10px', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 4,

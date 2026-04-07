@@ -4,6 +4,7 @@ import Landing from './pages/Landing'
 import Discover from './pages/Discover'
 import Admin from './pages/Admin'
 import Community from './pages/Community'
+import DailyNews from './pages/DailyNews'
 import { Lang, getSavedLang, saveLang } from './i18n'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/" element={<Landing lang={lang} />} />
         <Route path="/discover" element={<Discover lang={lang} />} />
         <Route path="/community" element={<Community lang={lang} />} />
+        <Route path="/daily-news" element={<DailyNews lang={lang} />} />
         <Route path="/admin" element={<Admin lang={lang} />} />
       </Routes>
     </BrowserRouter>

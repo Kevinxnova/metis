@@ -138,6 +138,16 @@ export const api = {
       body: JSON.stringify({ content, nickname }),
     }),
   getMessages: () => request<UserMessage[]>('/messages'),
+
+  // Daily News
+  getDailyNews: (date?: string) => {
+    const qs = date ? `?date=${date}` : ''
+    return request<DailyNews>(`/daily-news${qs}`)
+  },
+  getDailyNewsList: (limit = 7, offset = 0) =>
+    request<DailyNewsMeta[]>(`/daily-news/list?limit=${limit}&offset=${offset}`),
+  generateDailyNews: (force = false) =>
+    request<{ ok: boolean; news: DailyNews }>(`/daily-news/generate${force ? '?force=true' : ''}`, { method: 'POST' }),
 }
 
 export interface DigestItem {
@@ -162,4 +172,42 @@ export interface AiPick extends Tool {
   ai_reason_en: string
   ai_use_cases_en: string
   ai_score: number
+}
+
+export interface DailyNewsHeadline {
+  rank: number
+  title: string
+  title_en: string
+  summary: string
+  summary_en: string
+  source: string
+  source_url: string
+  tag: string
+}
+
+export interface DailyNewsQuickBite {
+  text: string
+  text_en: string
+  source: string
+  source_url: string
+}
+
+export interface DailyNews {
+  id: number
+  news_date: string
+  headlines: DailyNewsHeadline[]
+  quick_bites: DailyNewsQuickBite[]
+  editor_take: string
+  editor_take_en: string
+  model: string
+  created_at: string
+}
+
+export interface DailyNewsMeta {
+  id: number
+  news_date: string
+  editor_take: string
+  editor_take_en: string
+  model: string
+  created_at: string
 }
