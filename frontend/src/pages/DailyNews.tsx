@@ -78,16 +78,16 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
 
   return (
     <div style={{
-      background: '#0a0a1a',
+      background: 'var(--bg-secondary)',
       borderRadius: 12,
       padding: '20px 20px 16px',
-      border: '1px solid #1a1a2e',
+      border: '1px solid var(--border-primary)',
       marginBottom: 32,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-heading)' }}>
             {year} {lang === 'zh' ? '年度概览' : 'Overview'}
           </span>
         </div>
@@ -97,7 +97,7 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
             background: '#fff',
             boxShadow: '0 0 6px 2px rgba(167,139,250,0.5), 0 0 12px 4px rgba(96,165,250,0.3)',
           }} />
-          <span style={{ fontSize: 11, color: '#666' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {publishedCount} {lang === 'zh' ? '期已发布' : publishedCount === 1 ? 'issue' : 'issues'}
           </span>
         </div>
@@ -116,7 +116,7 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
               fontSize: 9, textAlign: 'center',
               marginBottom: 4, letterSpacing: 0.5,
               fontWeight: month === new Date().getMonth() ? 600 : 400,
-              color: month === new Date().getMonth() ? '#888' : '#444',
+              color: month === new Date().getMonth() ? 'var(--text-body)' : 'var(--text-dim)',
             }}>
               {label}
             </div>
@@ -154,11 +154,11 @@ function YearOverview({ publishedDates, currentDate, onSelectDate, lang }: YearO
                         background: 'transparent',
                         boxShadow: '0 0 0 1px rgba(167,139,250,0.5) inset',
                       } : isFuture ? {
-                        background: 'rgba(255,255,255,0.03)',
+                        background: 'var(--bg-hover)',
                       } : isPast ? {
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--bg-hover)',
                       } : {
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--bg-hover)',
                       }),
                     }}
                   />
@@ -235,11 +235,11 @@ export default function DailyNews({ lang }: { lang: Lang }) {
   const publishedSet = useMemo(() => new Set(availableDates), [availableDates])
 
   return (
-    <div style={{ background: '#050510', minHeight: '100vh', color: '#fff' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
       {/* Header */}
       <header style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <a href="/discover" style={{ color: '#666', textDecoration: 'none', fontSize: 13 }}>
+          <a href="/discover" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>
             ← {isZh ? '返回' : 'Back'}
           </a>
           <a href="/" style={{ textDecoration: 'none' }}>
@@ -254,7 +254,7 @@ export default function DailyNews({ lang }: { lang: Lang }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 4px' }}>
           {t(lang, 'dailyNews')}
         </h1>
-        <p style={{ color: '#666', fontSize: 14, margin: '0 0 20px' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 20px' }}>
           {t(lang, 'dailyNewsSubtitle')}
         </p>
 
@@ -269,14 +269,14 @@ export default function DailyNews({ lang }: { lang: Lang }) {
         {/* Date Navigation */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32,
-          padding: '8px 0', borderBottom: '1px solid #1a1a2e',
+          padding: '8px 0', borderBottom: '1px solid var(--border-primary)',
         }}>
           <button
             onClick={goPrev}
             disabled={!hasPrev}
             style={{ ...navBtnStyle, opacity: hasPrev ? 1 : 0.3, cursor: hasPrev ? 'pointer' : 'default' }}
           >{'<'}</button>
-          <span style={{ fontSize: 15, color: '#ccc', minWidth: 160, textAlign: 'center' }}>
+          <span style={{ fontSize: 15, color: 'var(--text-secondary)', minWidth: 160, textAlign: 'center' }}>
             {formatDate(currentDate, lang)}
           </span>
           <button
@@ -285,7 +285,7 @@ export default function DailyNews({ lang }: { lang: Lang }) {
             style={{ ...navBtnStyle, opacity: hasNext ? 1 : 0.3, cursor: hasNext ? 'pointer' : 'default' }}
           >{'>'}</button>
           {availableDates.length > 0 && (
-            <span style={{ fontSize: 12, color: '#444' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
               {dateIndex + 1} / {availableDates.length}
             </span>
           )}
@@ -295,19 +295,19 @@ export default function DailyNews({ lang }: { lang: Lang }) {
       {/* Content */}
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '0 24px 64px' }}>
         {loading ? (
-          <p style={{ color: '#555', textAlign: 'center', padding: 48 }}>
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 48 }}>
             {isZh ? '加载中...' : 'Loading...'}
           </p>
         ) : error || !news ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
-            <p style={{ color: '#555', fontSize: 18, marginBottom: 8 }}>{t(lang, 'noNewsToday')}</p>
-            <p style={{ color: '#333', fontSize: 13 }}>{t(lang, 'noNewsDesc')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 18, marginBottom: 8 }}>{t(lang, 'noNewsToday')}</p>
+            <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>{t(lang, 'noNewsDesc')}</p>
           </div>
         ) : (
           <>
             {/* Headlines */}
             <section style={{ marginBottom: 40 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#e0e0e0' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--text-heading)' }}>
                 {t(lang, 'headlines')}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -317,17 +317,17 @@ export default function DailyNews({ lang }: { lang: Lang }) {
                       <span style={{
                         fontSize: 11, padding: '2px 8px', borderRadius: 4,
                         background: (TAG_COLORS[h.tag] || '#666') + '22',
-                        color: TAG_COLORS[h.tag] || '#888',
+                        color: TAG_COLORS[h.tag] || 'var(--text-body)',
                         fontWeight: 600,
                       }}>
                         {tagLabel(h.tag, lang)}
                       </span>
-                      <span style={{ color: '#555', fontSize: 12 }}>{h.source}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{h.source}</span>
                     </div>
                     <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px', lineHeight: 1.4 }}>
                       {isZh ? h.title : h.title_en}
                     </h3>
-                    <p style={{ color: '#999', fontSize: 14, lineHeight: 1.6, margin: '0 0 12px' }}>
+                    <p style={{ color: 'var(--text-body)', fontSize: 14, lineHeight: 1.6, margin: '0 0 12px' }}>
                       {isZh ? h.summary : h.summary_en}
                     </p>
                     {h.source_url && (
@@ -348,27 +348,27 @@ export default function DailyNews({ lang }: { lang: Lang }) {
             {/* Quick Bites */}
             {news.quick_bites.length > 0 && (
               <section style={{ marginBottom: 40 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#e0e0e0' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--text-heading)' }}>
                   {t(lang, 'quickBites')}
                 </h2>
                 <div style={{
-                  background: '#0a0a1a', borderRadius: 8, padding: 16,
-                  border: '1px solid #1a1a2e',
+                  background: 'var(--bg-secondary)', borderRadius: 8, padding: 16,
+                  border: '1px solid var(--border-primary)',
                 }}>
                   {news.quick_bites.map((qb, i) => (
                     <div key={i} style={{
                       padding: '10px 0',
-                      borderBottom: i < news.quick_bites.length - 1 ? '1px solid #1a1a2e' : 'none',
+                      borderBottom: i < news.quick_bites.length - 1 ? '1px solid var(--border-primary)' : 'none',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
                     }}>
-                      <span style={{ color: '#ccc', fontSize: 14, lineHeight: 1.5 }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>
                         {isZh ? qb.text : qb.text_en}
                       </span>
                       <a
                         href={qb.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#555', fontSize: 12, flexShrink: 0, textDecoration: 'none' }}
+                        style={{ color: 'var(--text-muted)', fontSize: 12, flexShrink: 0, textDecoration: 'none' }}
                       >
                         {qb.source}
                       </a>
@@ -381,7 +381,7 @@ export default function DailyNews({ lang }: { lang: Lang }) {
             {/* Editor's Take */}
             {(news.editor_take || news.editor_take_en) && (
               <section style={{ marginBottom: 40 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#e0e0e0' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--text-heading)' }}>
                   {t(lang, 'editorTake')}
                 </h2>
                 <div style={{
@@ -389,7 +389,7 @@ export default function DailyNews({ lang }: { lang: Lang }) {
                   borderRadius: 8, padding: 20,
                   borderLeft: '3px solid #a78bfa',
                 }}>
-                  <p style={{ color: '#bbb', fontSize: 14, lineHeight: 1.8, margin: 0 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, margin: 0 }}>
                     {isZh ? news.editor_take : news.editor_take_en}
                   </p>
                 </div>
@@ -403,11 +403,12 @@ export default function DailyNews({ lang }: { lang: Lang }) {
 }
 
 const navBtnStyle: React.CSSProperties = {
-  background: 'none', border: '1px solid #2a2a3a', borderRadius: 6,
-  color: '#999', fontSize: 16, padding: '4px 12px', cursor: 'pointer',
+  background: 'none', border: '1px solid var(--border-primary)', borderRadius: 6,
+  color: 'var(--text-body)', fontSize: 16, padding: '4px 12px', cursor: 'pointer',
 }
 
 const cardStyle: React.CSSProperties = {
-  background: '#0a0a1a', borderRadius: 8, padding: 20,
-  border: '1px solid #1a1a2e',
+  background: 'var(--bg-secondary)', borderRadius: 8, padding: 20,
+  border: '1px solid var(--border-primary)',
+  boxShadow: 'var(--shadow-card)',
 }

@@ -30,7 +30,7 @@ export default function Community({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div style={{ background: '#050510', minHeight: '100vh', color: '#fff' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
 
         <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48 }}>
@@ -41,7 +41,7 @@ export default function Community({ lang }: { lang: Lang }) {
           }}>
             Metis
           </a>
-          <a href="/discover" style={{ fontSize: 13, color: '#60a5fa', textDecoration: 'none' }}>
+          <a href="/discover" style={{ fontSize: 13, color: 'var(--accent-blue)', textDecoration: 'none' }}>
             ← {isZh ? '返回发现' : 'Back'}
           </a>
         </nav>
@@ -49,7 +49,7 @@ export default function Community({ lang }: { lang: Lang }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px', letterSpacing: -0.5 }}>
           {isZh ? '💬 社区之声' : '💬 Community Voice'}
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 32 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 32 }}>
           {isZh
             ? '分享你想了解的 AI 工具、你的发现、或任何想法'
             : 'Share what AI tools you want to find, your discoveries, or any thoughts'}
@@ -57,7 +57,7 @@ export default function Community({ lang }: { lang: Lang }) {
 
         {/* Input form */}
         <form onSubmit={handleSubmit} style={{
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)',
           borderRadius: 12, padding: 20, marginBottom: 40,
         }}>
           <input
@@ -66,8 +66,8 @@ export default function Community({ lang }: { lang: Lang }) {
             placeholder={isZh ? '你的昵称（选填）' : 'Your nickname (optional)'}
             style={{
               width: '100%', padding: 10, fontSize: 14, borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-              color: '#ccc', marginBottom: 10, boxSizing: 'border-box', outline: 'none',
+              border: '1px solid var(--border-input)', background: 'var(--bg-input)',
+              color: 'var(--text-secondary)', marginBottom: 10, boxSizing: 'border-box', outline: 'none',
             }}
           />
           <textarea
@@ -79,8 +79,8 @@ export default function Community({ lang }: { lang: Lang }) {
             rows={4}
             style={{
               width: '100%', padding: 10, fontSize: 14, borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-              color: '#ccc', marginBottom: 12, boxSizing: 'border-box', resize: 'vertical',
+              border: '1px solid var(--border-input)', background: 'var(--bg-input)',
+              color: 'var(--text-secondary)', marginBottom: 12, boxSizing: 'border-box', resize: 'vertical',
               fontFamily: 'inherit', outline: 'none',
             }}
           />
@@ -91,8 +91,8 @@ export default function Community({ lang }: { lang: Lang }) {
             <button type="submit" disabled={sending || !content.trim()} style={{
               padding: '8px 24px', fontSize: 14, fontWeight: 600, borderRadius: 8,
               border: 'none', cursor: 'pointer',
-              background: content.trim() ? 'linear-gradient(135deg, #60a5fa, #a78bfa)' : '#333',
-              color: '#fff',
+              background: content.trim() ? 'linear-gradient(135deg, #60a5fa, #a78bfa)' : 'var(--text-dim)',
+              color: 'var(--text-primary)',
             }}>
               {sending ? (isZh ? '提交中...' : 'Submitting...') : (isZh ? '提交' : 'Submit')}
             </button>
@@ -100,29 +100,31 @@ export default function Community({ lang }: { lang: Lang }) {
         </form>
 
         {/* Messages carousel / list */}
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#999', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-body)', marginBottom: 16 }}>
           {isZh ? '大家在说' : 'What people are saying'}
         </h2>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {messages.length === 0 && (
-            <p style={{ color: '#444', textAlign: 'center', padding: 32 }}>
+            <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: 32 }}>
               {isZh ? '还没有留言，成为第一个分享的人吧！' : 'No messages yet. Be the first to share!'}
             </p>
           )}
           {messages.map(m => (
             <div key={m.id} style={{
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--bg-hover)', border: '1px solid var(--border-card)',
               borderRadius: 10, padding: 16,
+              boxShadow: 'var(--shadow-card)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#a78bfa' }}>
                   {m.nickname || (isZh ? '匿名用户' : 'Anonymous')}
                 </span>
-                <span style={{ fontSize: 11, color: '#444' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
                   {new Date(m.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
                 {m.content}
               </p>
             </div>
