@@ -4,3 +4,4 @@ deep-translator==1.11.4
 openai>=1.0.0
 python-dotenv>=1.0.0
 certifi
+feedparser>=6.0.0

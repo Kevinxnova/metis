@@ -4,6 +4,7 @@ import logging
 from backend.scrapers.github import GitHubScraper
 from backend.scrapers.hackernews import HNScraper
 from backend.scrapers.producthunt import ProductHuntScraper
+from backend.scrapers.rss_news import RSSNewsScraper
 from backend.db import init_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -13,6 +14,7 @@ SCRAPERS = [
     GitHubScraper(),
     HNScraper(),
     ProductHuntScraper(),
+    RSSNewsScraper(),
 ]
 
 
