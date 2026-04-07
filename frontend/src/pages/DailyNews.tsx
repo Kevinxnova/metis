@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { api, DailyNews as DailyNewsType } from '../api/client'
+import { api, DailyNews as DailyNewsType, DailyNewsMeta } from '../api/client'
 import { Lang, t } from '../i18n'
 
 const TAG_COLORS: Record<string, string> = {
@@ -20,10 +20,9 @@ function formatDate(dateStr: string, lang: string): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-function shiftDate(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
+function getLocalToday(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const tagLabel = (tag: string, lang: string): string => {
@@ -41,25 +40,63 @@ const tagLabel = (tag: string, lang: string): string => {
 
 export default function DailyNews({ lang }: { lang: Lang }) {
   const [news, setNews] = useState<DailyNewsType | null>(null)
-  const [currentDate, setCurrentDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [dateIndex, setDateIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
   const isZh = lang === 'zh'
 
+  // Load available dates on mount
   useEffect(() => {
+    api.getDailyNewsList(30, 0)
+      .then(list => {
+        const dates = list.map((m: DailyNewsMeta) => m.news_date)
+        setAvailableDates(dates)
+        // dates are sorted DESC from API, index 0 = latest
+        if (dates.length > 0) {
+          setDateIndex(0)
+        }
+      })
+      .catch(() => setAvailableDates([]))
+  }, [])
+
+  // Load news when dateIndex changes
+  useEffect(() => {
+    if (availableDates.length === 0) {
+      // No dates available yet — try loading latest without date param
+      setLoading(true)
+      api.getDailyNews()
+        .then(data => { setNews(data); setLoading(false) })
+        .catch(() => { setNews(null); setError(true); setLoading(false) })
+      return
+    }
+
+    const date = availableDates[dateIndex]
+    if (!date) return
+
     setLoading(true)
     setError(false)
-    api.getDailyNews(currentDate)
+    api.getDailyNews(date)
       .then(data => { setNews(data); setLoading(false) })
       .catch(() => { setNews(null); setError(true); setLoading(false) })
-  }, [currentDate])
+  }, [dateIndex, availableDates])
 
-  const goDay = (offset: number) => {
-    setCurrentDate(prev => shiftDate(prev, offset))
+  const goPrev = () => {
+    if (dateIndex < availableDates.length - 1) {
+      setDateIndex(i => i + 1)
+    }
   }
 
-  const isToday = currentDate >= new Date().toISOString().split('T')[0]
+  const goNext = () => {
+    if (dateIndex > 0) {
+      setDateIndex(i => i - 1)
+    }
+  }
+
+  const hasPrev = dateIndex < availableDates.length - 1
+  const hasNext = dateIndex > 0
+  const currentDate = availableDates[dateIndex] || news?.news_date || getLocalToday()
 
   return (
     <div style={{ background: '#050510', minHeight: '100vh', color: '#fff' }}>
@@ -85,20 +122,29 @@ export default function DailyNews({ lang }: { lang: Lang }) {
           {t(lang, 'dailyNewsSubtitle')}
         </p>
 
-        {/* Date Navigation */}
+        {/* Date Navigation — jump between available issues */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32,
           padding: '8px 0', borderBottom: '1px solid #1a1a2e',
         }}>
-          <button onClick={() => goDay(-1)} style={navBtnStyle}>{'<'}</button>
+          <button
+            onClick={goPrev}
+            disabled={!hasPrev}
+            style={{ ...navBtnStyle, opacity: hasPrev ? 1 : 0.3, cursor: hasPrev ? 'pointer' : 'default' }}
+          >{'<'}</button>
           <span style={{ fontSize: 15, color: '#ccc', minWidth: 160, textAlign: 'center' }}>
             {formatDate(currentDate, lang)}
           </span>
           <button
-            onClick={() => goDay(1)}
-            disabled={isToday}
-            style={{ ...navBtnStyle, opacity: isToday ? 0.3 : 1 }}
+            onClick={goNext}
+            disabled={!hasNext}
+            style={{ ...navBtnStyle, opacity: hasNext ? 1 : 0.3, cursor: hasNext ? 'pointer' : 'default' }}
           >{'>'}</button>
+          {availableDates.length > 0 && (
+            <span style={{ fontSize: 12, color: '#444' }}>
+              {dateIndex + 1} / {availableDates.length}
+            </span>
+          )}
         </div>
       </header>
 
