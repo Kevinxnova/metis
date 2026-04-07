@@ -22,11 +22,12 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
     <div
       onClick={() => onSelect(tool)}
       style={{
-        background: '#111', border: '1px solid #1e1e1e', borderRadius: 10,
+        background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: 10,
         padding: 16, cursor: 'pointer', transition: 'border-color 0.2s, transform 0.15s',
+        boxShadow: 'var(--shadow-card)',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.transform = 'translateY(0)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -48,7 +49,7 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
             )}
           </div>
           <h3 style={{
-            fontSize: 14, fontWeight: 600, color: '#eee', margin: '0 0 4px',
+            fontSize: 14, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {title}
@@ -60,13 +61,13 @@ export default function ToolRow({ tool, lang, onSelect, showAiInfo }: Props) {
             </p>
           )}
           {!showAiInfo && tool.take && (
-            <p style={{ fontSize: 12, color: '#a78bfa', lineHeight: 1.5, margin: '0 0 4px',
+            <p style={{ fontSize: 12, color: 'var(--accent-purple)', lineHeight: 1.5, margin: '0 0 4px',
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               💎 {(!isZh && tool.take_en) ? tool.take_en : tool.take}
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#555', flexShrink: 0, paddingTop: 4 }}>
+        <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, paddingTop: 4 }}>
           {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐{String(metrics.stars)}</span>}
           {metrics.points != null && Number(metrics.points) > 0 && <span>▲{String(metrics.points)}</span>}
         </div>

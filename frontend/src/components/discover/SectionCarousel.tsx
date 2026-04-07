@@ -34,12 +34,12 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
         onClick={() => onSelect(tool)}
         style={{
           flex: `0 0 320px`, width: 320,
-          background: `linear-gradient(145deg, #111, ${accentColor}08)`,
+          background: `linear-gradient(145deg, var(--bg-card), ${accentColor}08)`,
           border: `1px solid ${accentColor}25`,
           borderRadius: 14, padding: 20, cursor: 'pointer',
           transition: 'transform 0.2s, border-color 0.2s',
           display: 'flex', flexDirection: 'column',
-          minHeight: 200,
+          minHeight: 200, boxShadow: 'var(--shadow-card)',
         }}
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'translateY(-4px)'
@@ -69,7 +69,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#555' }}>
+          <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--text-muted)' }}>
             {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐{String(metrics.stars).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>}
             {metrics.points != null && Number(metrics.points) > 0 && <span>▲{String(metrics.points)}</span>}
           </div>
@@ -77,7 +77,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
 
         {/* Title */}
         <h3 style={{
-          fontSize: 16, fontWeight: 600, color: '#eee', margin: '0 0 8px',
+          fontSize: 16, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 8px',
           lineHeight: 1.3,
           display: '-webkit-box', WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -105,7 +105,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
             </p>
           ) : desc ? (
             <p style={{
-              fontSize: 13, color: '#777', lineHeight: 1.6, margin: 0,
+              fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6, margin: 0,
               display: '-webkit-box', WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
@@ -116,7 +116,7 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
 
         {/* Bottom */}
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#444' }}>{tool.source}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{tool.source}</span>
           {showAiInfo && aiTool.ai_use_cases && (
             <span style={{ fontSize: 11, color: `${accentColor}88` }}>
               {isZh ? '查看适用场景 →' : 'See use cases →'}
@@ -167,8 +167,8 @@ export default function SectionCarousel({ tools, lang, onSelect, accentColor, sh
         onMouseLeave={() => setPaused(false)}
       >
         {/* Fade edges */}
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(90deg, #050510, transparent)', zIndex: 2, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(270deg, #050510, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(90deg, var(--carousel-fade-from), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, background: 'linear-gradient(270deg, var(--carousel-fade-from), transparent)', zIndex: 2, pointerEvents: 'none' }} />
 
         {/* Arrow buttons */}
         <button onClick={() => scrollSmooth(-1)} style={{

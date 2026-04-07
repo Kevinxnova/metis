@@ -113,7 +113,7 @@ export default function Landing({ lang }: { lang: Lang }) {
   const isZh = lang === 'zh'
 
   return (
-    <div style={{ background: '#050510', minHeight: '100vh', color: '#fff', overflow: 'hidden' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)', overflow: 'hidden' }}>
       <StarField />
 
       {/* Ambient nebula glows */}
@@ -135,7 +135,7 @@ export default function Landing({ lang }: { lang: Lang }) {
             Metis
           </span>
           <a href="/discover" style={{
-            fontSize: 13, color: '#60a5fa', textDecoration: 'none',
+            fontSize: 13, color: 'var(--accent-blue)', textDecoration: 'none',
             padding: '6px 16px', border: '1px solid rgba(96,165,250,0.3)',
             borderRadius: 6, backdropFilter: 'blur(4px)', background: 'rgba(96,165,250,0.05)',
           }}>
@@ -156,13 +156,13 @@ export default function Landing({ lang }: { lang: Lang }) {
             Metis
           </h1>
           <p style={{
-            fontSize: 22, fontWeight: 300, color: '#999', letterSpacing: 4, margin: '0 0 32px',
+            fontSize: 22, fontWeight: 300, color: 'var(--text-body)', letterSpacing: 4, margin: '0 0 32px',
             textTransform: 'uppercase',
           }}>
             {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
           </p>
           <p style={{
-            fontSize: 16, color: '#666', lineHeight: 1.9, maxWidth: 520, margin: '0 auto 48px',
+            fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.9, maxWidth: 520, margin: '0 auto 48px',
           }}>
             {isZh
               ? 'AI 时代每天涌现大量工具和知识，靠社交媒体和口耳相传效率太低。Metis 持续追踪科技圈动态，帮你用最少的时间获取最有价值的信息。'
@@ -171,7 +171,7 @@ export default function Landing({ lang }: { lang: Lang }) {
           <a href="/discover" style={{
             display: 'inline-block', padding: '16px 48px', fontSize: 16, fontWeight: 600,
             background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
-            color: '#fff', borderRadius: 12, textDecoration: 'none',
+            color: 'var(--text-primary)', borderRadius: 12, textDecoration: 'none',
             boxShadow: '0 0 40px rgba(96,165,250,0.2), 0 0 80px rgba(139,92,246,0.1)',
             transition: 'transform 0.2s, box-shadow 0.2s',
           }}
@@ -242,8 +242,8 @@ export default function Landing({ lang }: { lang: Lang }) {
             ].map(d => (
               <span key={d.label} style={{
                 fontSize: 13, padding: '6px 14px', borderRadius: 8,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-                color: '#777', backdropFilter: 'blur(4px)',
+                background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)',
+                color: 'var(--text-body)', backdropFilter: 'blur(4px)',
               }}>
                 {d.emoji} {d.label}
               </span>
@@ -259,16 +259,16 @@ export default function Landing({ lang }: { lang: Lang }) {
             borderRadius: 16, padding: '48px 24px',
             backdropFilter: 'blur(8px)',
           }}>
-            <p style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px', color: '#eee', letterSpacing: -0.5 }}>
+            <p style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px', color: 'var(--text-primary)', letterSpacing: -0.5 }}>
               {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
-            <p style={{ fontSize: 14, color: '#666', margin: '0 0 28px' }}>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 28px' }}>
               {isZh ? '每天 5 分钟，掌握科技圈最值得关注的动态' : '5 minutes a day to stay ahead of what matters in tech'}
             </p>
             <a href="/discover" style={{
               display: 'inline-block', padding: '14px 36px', fontSize: 15, fontWeight: 600,
               background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
-              color: '#fff', borderRadius: 10, textDecoration: 'none',
+              color: 'var(--text-primary)', borderRadius: 10, textDecoration: 'none',
               boxShadow: '0 0 30px rgba(96,165,250,0.15)',
             }}>
               {isZh ? '立即体验 →' : 'Try Now →'}
@@ -278,8 +278,8 @@ export default function Landing({ lang }: { lang: Lang }) {
 
         {/* Footer */}
         <footer style={{
-          textAlign: 'center', padding: '24px 0', color: '#333', fontSize: 12,
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          textAlign: 'center', padding: '24px 0', color: 'var(--text-dim)', fontSize: 12,
+          borderTop: '1px solid var(--border-subtle)',
         }}>
           Metis · {isZh ? '持续发现，持续成长' : 'Keep discovering, keep growing'}
         </footer>
@@ -292,7 +292,7 @@ function SectionLabel({ text }: { text: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ width: 3, height: 16, background: 'linear-gradient(180deg, #60a5fa, #a78bfa)', borderRadius: 2 }} />
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>{text}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-body)', textTransform: 'uppercase', letterSpacing: 1 }}>{text}</span>
     </div>
   )
 }
@@ -301,7 +301,7 @@ function StoryCard({ num, title, body }: { num: string; title: string; body: str
   return (
     <div style={{
       display: 'flex', gap: 16, padding: 20,
-      background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+      background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)',
       borderRadius: 12, backdropFilter: 'blur(4px)',
     }}>
       <span style={{
@@ -312,8 +312,8 @@ function StoryCard({ num, title, body }: { num: string; title: string; body: str
         {num}
       </span>
       <div>
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#ddd', margin: '0 0 8px' }}>{title}</h3>
-        <p style={{ fontSize: 14, color: '#777', lineHeight: 1.8, margin: 0 }}>{body}</p>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 8px' }}>{title}</h3>
+        <p style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.8, margin: 0 }}>{body}</p>
       </div>
     </div>
   )
@@ -328,8 +328,8 @@ function FeatureCard({ icon, title, desc, color }: { icon: string; title: string
       backdropFilter: 'blur(4px)',
     }}>
       <div style={{ fontSize: 24, marginBottom: 8 }}>{icon}</div>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#ddd', margin: '0 0 6px' }}>{title}</h3>
-      <p style={{ fontSize: 13, color: '#777', lineHeight: 1.6, margin: 0 }}>{desc}</p>
+      <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 6px' }}>{title}</h3>
+      <p style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
     </div>
   )
 }

@@ -56,18 +56,19 @@ export default function HeroCarousel({ tools, lang, onSelect }: Props) {
             onClick={() => onSelect(tool)}
             style={{
               flex: '0 0 300px', scrollSnapAlign: 'start',
-              background: 'linear-gradient(145deg, #141414, #1a1a2e)',
-              border: '1px solid #222',
+              background: 'linear-gradient(145deg, var(--bg-card-alt), var(--bg-secondary))',
+              border: '1px solid var(--border-card)',
               borderRadius: 12, padding: 20, cursor: 'pointer',
               transition: 'transform 0.2s, border-color 0.2s',
+              boxShadow: 'var(--shadow-card)',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.borderColor = '#444'
+              e.currentTarget.style.borderColor = 'var(--border-primary)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.borderColor = '#222'
+              e.currentTarget.style.borderColor = 'var(--border-card)'
             }}
           >
             {/* Tags */}
@@ -98,7 +99,7 @@ export default function HeroCarousel({ tools, lang, onSelect }: Props) {
 
             {/* Title */}
             <h3 style={{
-              fontSize: 16, fontWeight: 600, margin: '0 0 8px', color: '#eee',
+              fontSize: 16, fontWeight: 600, margin: '0 0 8px', color: 'var(--text-heading)',
               lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
@@ -107,7 +108,7 @@ export default function HeroCarousel({ tools, lang, onSelect }: Props) {
 
             {/* Description */}
             <p style={{
-              fontSize: 13, color: '#888', lineHeight: 1.5, margin: '0 0 12px',
+              fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5, margin: '0 0 12px',
               display: '-webkit-box', WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
@@ -115,7 +116,7 @@ export default function HeroCarousel({ tools, lang, onSelect }: Props) {
             </p>
 
             {/* Metrics */}
-            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#555' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)' }}>
               {metrics.stars != null && Number(metrics.stars) > 0 && <span>⭐ {String(metrics.stars)}</span>}
               {metrics.points != null && Number(metrics.points) > 0 && <span>▲ {String(metrics.points)}</span>}
               {metrics.votes != null && Number(metrics.votes) > 0 && <span>▲ {String(metrics.votes)}</span>}

@@ -50,7 +50,7 @@ export default function Discover({ lang }: { lang: Lang }) {
 
 
   return (
-    <div style={{ background: '#050510', minHeight: '100vh', color: '#fff' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
       <header style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
@@ -61,26 +61,26 @@ export default function Discover({ lang }: { lang: Lang }) {
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>Metis</h1>
             </a>
-            <p style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
               {isZh ? '帮你成为更好的你' : 'Helping you become a better you'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="/daily-news" style={{
-              fontSize: 12, color: '#60a5fa', textDecoration: 'none',
+              fontSize: 12, color: 'var(--accent-blue)', textDecoration: 'none',
               padding: '4px 10px', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 4,
             }}>
               {isZh ? 'AI 日报' : 'AI Daily'}
             </a>
             <a href="/community" style={{
-              fontSize: 12, color: '#a78bfa', textDecoration: 'none',
+              fontSize: 12, color: 'var(--accent-purple)', textDecoration: 'none',
               padding: '4px 10px', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 4,
             }}>
               💬 {isZh ? '社区' : 'Community'}
             </a>
             <a href="/" style={{
-              fontSize: 12, color: '#555', textDecoration: 'none',
-              padding: '4px 10px', border: '1px solid #2a2a2a', borderRadius: 4,
+              fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none',
+              padding: '4px 10px', border: '1px solid var(--border-primary)', borderRadius: 4,
             }}>
               {isZh ? '关于' : 'About'}
             </a>
@@ -90,7 +90,7 @@ export default function Discover({ lang }: { lang: Lang }) {
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px 64px' }}>
         {loading ? (
-          <p style={{ color: '#555', textAlign: 'center', padding: 48 }}>
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 48 }}>
             {isZh ? '加载中...' : 'Loading...'}
           </p>
         ) : (
@@ -135,7 +135,7 @@ export default function Discover({ lang }: { lang: Lang }) {
               action={aiPicks.length === 0 ? (
                 <button onClick={handleGenerateAi} disabled={aiLoading} style={{
                   fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
-                  border: '1px solid rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.1)', color: '#60a5fa',
+                  border: '1px solid rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.1)', color: 'var(--accent-blue)',
                 }}>
                   {aiLoading ? (isZh ? '分析中...' : 'Analyzing...') : (isZh ? '🤖 生成' : '🤖 Generate')}
                 </button>
@@ -151,11 +151,11 @@ export default function Discover({ lang }: { lang: Lang }) {
                     const short = reason.split(/[.。!！]/)[0]
                     return (
                       <div key={p.id} onClick={() => setSelectedTool(p)} style={{
-                        fontSize: 13, color: '#aaa', cursor: 'pointer', lineHeight: 1.5,
-                        padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.5,
+                        padding: '4px 0', borderBottom: '1px solid var(--border-subtle)',
                       }}>
-                        <span style={{ color: '#60a5fa', fontWeight: 600 }}>{name}</span>
-                        <span style={{ color: '#555' }}> — </span>
+                        <span style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>{name}</span>
+                        <span style={{ color: 'var(--text-muted)' }}> — </span>
                         <span>{short}</span>
                       </div>
                     )
@@ -181,9 +181,9 @@ export default function Discover({ lang }: { lang: Lang }) {
               const otherTools = sortByScore(weekTools.filter(t => !categorizedIds.has(t.id)))
 
               const modules = [
-                { key: 'news',    icon: '📰', labelZh: 'AI 动态',  labelEn: 'AI News',  color: '#60a5fa', border: 'rgba(96,165,250,0.2)',   bg: 'rgba(96,165,250,0.05)',   tools: newsTools },
-                { key: 'ai_tool', icon: '🔧', labelZh: 'AI 工具',  labelEn: 'AI Tools', color: '#a78bfa', border: 'rgba(167,139,250,0.2)',  bg: 'rgba(167,139,250,0.05)', tools: aiTools },
-                { key: 'other',   icon: '🌐', labelZh: '其他',     labelEn: 'Others',   color: '#888',    border: 'rgba(255,255,255,0.1)',  bg: 'rgba(255,255,255,0.02)', tools: otherTools },
+                { key: 'news',    icon: '📰', labelZh: 'AI 动态',  labelEn: 'AI News',  color: 'var(--accent-blue)',   border: 'rgba(96,165,250,0.2)',   bg: 'rgba(96,165,250,0.05)',   tools: newsTools },
+                { key: 'ai_tool', icon: '🔧', labelZh: 'AI 工具',  labelEn: 'AI Tools', color: 'var(--accent-purple)', border: 'rgba(167,139,250,0.2)',  bg: 'rgba(167,139,250,0.05)', tools: aiTools },
+                { key: 'other',   icon: '🌐', labelZh: '其他',     labelEn: 'Others',   color: 'var(--text-body)',     border: 'rgba(255,255,255,0.1)',  bg: 'rgba(255,255,255,0.02)', tools: otherTools },
               ]
 
               return (
@@ -197,7 +197,7 @@ export default function Discover({ lang }: { lang: Lang }) {
                   action={weekTools.length > 0 ? (
                     <button onClick={async () => {
                       try { const tool = await api.getRandomTool(); setSelectedTool(tool) } catch {}
-                    }} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#aaa' }}>
+                    }} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
                       🎲 {isZh ? '随机一个' : 'Random'}
                     </button>
                   ) : undefined}
@@ -225,8 +225,8 @@ export default function Discover({ lang }: { lang: Lang }) {
       </main>
 
       <footer style={{
-        textAlign: 'center', padding: 24, color: '#333', fontSize: 12,
-        borderTop: '1px solid #151515',
+        textAlign: 'center', padding: 24, color: 'var(--text-dim)', fontSize: 12,
+        borderTop: '1px solid var(--border-card)',
       }}>
         Metis · {isZh ? '每天发现好工具' : 'Discover great tools daily'}
       </footer>
@@ -254,15 +254,15 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
       >
         <span style={{ fontSize: 14 }}>{icon}</span>
         <span style={{ fontSize: 14, fontWeight: 600, color, flex: 1 }}>{label}</span>
-        <span style={{ fontSize: 11, color: '#555' }}>{tools.length}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tools.length}</span>
         {tools.length > 0 && (
-          <span style={{ fontSize: 11, color: '#555' }}>{expanded ? '↑' : '↓'}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{expanded ? '↑' : '↓'}</span>
         )}
       </div>
 
       {/* Items — shown when expanded or first TOP items */}
       {tools.length === 0 ? (
-        <p style={{ color: '#333', fontSize: 12, margin: 0, padding: '0 16px 12px' }}>
+        <p style={{ color: 'var(--text-dim)', fontSize: 12, margin: 0, padding: '0 16px 12px' }}>
           {isZh ? '暂无内容' : 'Nothing yet'}
         </p>
       ) : (
@@ -280,18 +280,18 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
                 onClick={() => onSelect(tool)}
                 style={{
                   display: 'flex', alignItems: 'baseline', gap: 6,
-                  padding: '6px 0', borderTop: i === 0 ? `1px solid ${border}` : '1px solid rgba(255,255,255,0.04)',
+                  padding: '6px 0', borderTop: i === 0 ? `1px solid ${border}` : '1px solid var(--border-subtle)',
                   cursor: 'pointer',
                 }}
               >
-                <span style={{ fontSize: 11, color: '#555', flexShrink: 0, width: 16 }}>{i + 1}</span>
-                <span style={{ fontSize: 13, color: '#ddd', fontWeight: 500, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, width: 16 }}>{i + 1}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-heading)', fontWeight: 500, flexShrink: 0 }}>
                   {isZh ? (tool.title_zh || tool.title) : tool.title}
                 </span>
                 {descPart && (
                   <>
-                    <span style={{ color: '#383838', flexShrink: 0 }}>—</span>
-                    <span style={{ fontSize: 12, color: '#666', lineHeight: 1.4 }}>{descPart}</span>
+                    <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>—</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.4 }}>{descPart}</span>
                   </>
                 )}
               </div>
@@ -300,7 +300,7 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
           {tools.length > TOP && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
-              style={{ marginTop: 8, fontSize: 12, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               {expanded
                 ? (isZh ? '收起 ↑' : 'Collapse ↑')
@@ -327,13 +327,13 @@ function Section({ icon, title, subtitle, gradient, borderColor, children, empty
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#eee', margin: 0 }}>{icon} {title}</h2>
-          <p style={{ fontSize: 12, color: '#666', margin: '4px 0 0' }}>{subtitle}</p>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>{icon} {title}</h2>
+          <p style={{ fontSize: 12, color: 'var(--text-body)', margin: '4px 0 0' }}>{subtitle}</p>
         </div>
         {action}
       </div>
       {empty ? (
-        <p style={{ color: '#444', fontSize: 13, textAlign: 'center', padding: 24 }}>{emptyText}</p>
+        <p style={{ color: 'var(--text-dim)', fontSize: 13, textAlign: 'center', padding: 24 }}>{emptyText}</p>
       ) : children}
     </section>
   )

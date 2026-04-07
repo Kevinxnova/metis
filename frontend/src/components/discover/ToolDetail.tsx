@@ -22,11 +22,11 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
   const hasTake = !!(tool.take)
 
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px' }}>
         {/* Back button */}
         <button onClick={onBack} style={{
-          background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer',
+          background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer',
           fontSize: 14, padding: 0, marginBottom: 32, display: 'flex', alignItems: 'center', gap: 6,
         }}>
           ← {isZh ? '返回发现' : 'Back to Discover'}
@@ -65,49 +65,49 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           {title}
         </h1>
         {isZh && tool.title_zh && (
-          <p style={{ fontSize: 14, color: '#555', margin: '0 0 24px' }}>{tool.title}</p>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 24px' }}>{tool.title}</p>
         )}
 
         {/* Metrics bar */}
         <div style={{
           display: 'flex', gap: 24, padding: '16px 0', marginBottom: 24,
-          borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a',
+          borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)',
         }}>
           {metrics.stars != null && Number(metrics.stars) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>⭐ {String(metrics.stars)}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>Stars</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Stars</div>
             </div>
           )}
           {metrics.stars_today != null && Number(metrics.stars_today) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#f59e0b' }}>+{String(metrics.stars_today)}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>{isZh ? '今日新增' : 'Today'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isZh ? '今日新增' : 'Today'}</div>
             </div>
           )}
           {metrics.points != null && Number(metrics.points) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>▲ {String(metrics.points)}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>HN Points</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>HN Points</div>
             </div>
           )}
           {metrics.comments != null && Number(metrics.comments) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>💬 {String(metrics.comments)}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>{isZh ? '评论' : 'Comments'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isZh ? '评论' : 'Comments'}</div>
             </div>
           )}
           {metrics.votes != null && Number(metrics.votes) > 0 && (
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>▲ {String(metrics.votes)}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>PH Votes</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>PH Votes</div>
             </div>
           )}
           <div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#60a5fa' }}>
               {new Date(tool.first_seen).toLocaleDateString()}
             </div>
-            <div style={{ fontSize: 11, color: '#555' }}>{isZh ? '首次发现' : 'First Seen'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isZh ? '首次发现' : 'First Seen'}</div>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
             borderRadius: 12, padding: 20, marginBottom: 16,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, color: '#60a5fa', fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: 'var(--accent-blue)', fontWeight: 600 }}>
                 🤖 {isZh ? 'AI 推荐理由' : 'AI Recommendation'}
               </span>
               {aiTool.ai_score && (
@@ -128,13 +128,13 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
                 </span>
               )}
             </div>
-            <p style={{ fontSize: 14, color: '#ccc', lineHeight: 1.7, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 12px' }}>
               {(!isZh && aiTool.ai_reason_en) ? aiTool.ai_reason_en : aiTool.ai_reason}
             </p>
             <div style={{ fontSize: 12, color: '#8b8', fontWeight: 600, marginBottom: 6 }}>
               {isZh ? '💡 适用场景' : '💡 Use Cases'}
             </div>
-            <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.7, margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
               {(!isZh && aiTool.ai_use_cases_en) ? aiTool.ai_use_cases_en : aiTool.ai_use_cases}
             </p>
           </div>
@@ -147,10 +147,10 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
             border: '1px solid rgba(139,92,246,0.12)',
             borderRadius: 12, padding: 20, marginBottom: 24,
           }}>
-            <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--accent-purple)', fontWeight: 600, marginBottom: 8 }}>
               💎 {isZh ? 'Metis 点评' : 'Metis Review'}
             </div>
-            <p style={{ fontSize: 14, color: '#bbb', lineHeight: 1.7, margin: 0 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
               {(!isZh && tool.take_en) ? tool.take_en : tool.take}
             </p>
           </div>
@@ -158,10 +158,10 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
 
         {/* Description */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#999', marginBottom: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-body)', marginBottom: 12 }}>
             {isZh ? '简介' : 'Description'}
           </h2>
-          <p style={{ fontSize: 15, color: '#ccc', lineHeight: 1.8, margin: 0 }}>
+          <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8, margin: 0 }}>
             {desc || (isZh ? '暂无详细描述。' : 'No description available.')}
           </p>
         </div>
