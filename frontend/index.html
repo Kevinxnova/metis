@@ -1,11 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Metis — Curator Dashboard</title>
+    <style>
+      :root, [data-theme="dark"] {
+        --bg-primary: #050510;
+        --bg-secondary: #0a0a1a;
+        --bg-card: #111;
+        --bg-card-alt: #141414;
+        --bg-hover: rgba(255,255,255,0.03);
+        --bg-input: rgba(255,255,255,0.04);
+
+        --text-primary: #fff;
+        --text-secondary: #ccc;
+        --text-body: #999;
+        --text-muted: #666;
+        --text-dim: #444;
+        --text-heading: #e0e0e0;
+
+        --border-primary: #1a1a2e;
+        --border-card: #1e1e1e;
+        --border-subtle: rgba(255,255,255,0.08);
+        --border-input: rgba(255,255,255,0.1);
+
+        --accent-blue: #60a5fa;
+        --accent-purple: #a78bfa;
+        --accent-pink: #f472b6;
+        --accent-green: #4a9;
+        --accent-orange: #f59e0b;
+        --accent-red: #f87171;
+
+        --shadow-card: none;
+        --shadow-glow-blue: rgba(96,165,250,0.2);
+        --shadow-glow-purple: rgba(139,92,246,0.1);
+
+        --overlay-blue: rgba(96,165,250,0.08);
+        --overlay-purple: rgba(139,92,246,0.08);
+        --overlay-orange: rgba(245,158,11,0.08);
+        --overlay-subtle: rgba(255,255,255,0.03);
+
+        --carousel-fade-from: #050510;
+
+        --admin-bg: #fafafa;
+        --admin-text: #333;
+        --admin-border: #ddd;
+      }
+
+      [data-theme="light"] {
+        --bg-primary: #f5f6fa;
+        --bg-secondary: #ffffff;
+        --bg-card: #ffffff;
+        --bg-card-alt: #f8f9fc;
+        --bg-hover: rgba(0,0,0,0.02);
+        --bg-input: rgba(0,0,0,0.03);
+
+        --text-primary: #1a1a2e;
+        --text-secondary: #444;
+        --text-body: #666;
+        --text-muted: #999;
+        --text-dim: #bbb;
+        --text-heading: #222;
+
+        --border-primary: #e2e4ea;
+        --border-card: #e8eaef;
+        --border-subtle: rgba(0,0,0,0.06);
+        --border-input: rgba(0,0,0,0.12);
+
+        --accent-blue: #3b82f6;
+        --accent-purple: #8b5cf6;
+        --accent-pink: #ec4899;
+        --accent-green: #10b981;
+        --accent-orange: #f59e0b;
+        --accent-red: #ef4444;
+
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-glow-blue: rgba(59,130,246,0.15);
+        --shadow-glow-purple: rgba(139,92,246,0.1);
+
+        --overlay-blue: rgba(59,130,246,0.06);
+        --overlay-purple: rgba(139,92,246,0.06);
+        --overlay-orange: rgba(245,158,11,0.06);
+        --overlay-subtle: rgba(0,0,0,0.02);
+
+        --carousel-fade-from: #f5f6fa;
+
+        --admin-bg: #fafafa;
+        --admin-text: #333;
+        --admin-border: #ddd;
+      }
+
+      body { margin: 0; padding: 0; background: var(--bg-primary); transition: background 0.3s ease; }
+    </style>
   </head>
-  <body style="margin:0;padding:0;">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
