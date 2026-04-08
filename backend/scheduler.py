@@ -59,6 +59,15 @@ def run_all():
         picks = generate_recommendations()
         logger.info(f"AI recommendations: {len(picks)} picks generated")
 
+    # Generate AI daily news briefing
+    logger.info("Generating AI daily news...")
+    from backend.daily_news import generate_daily_news
+    daily = generate_daily_news()
+    if daily:
+        logger.info(f"AI daily news generated for {daily.get('news_date', 'today')}")
+    else:
+        logger.warning("AI daily news generation skipped or failed")
+
     return results
 
 

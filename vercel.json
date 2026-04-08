@@ -1,6 +1,11 @@
 {
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/cron.py": {
+      "maxDuration": 600
+    }
+  },
   "rewrites": [
     { "source": "/api/cron", "destination": "/api/cron.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" },
