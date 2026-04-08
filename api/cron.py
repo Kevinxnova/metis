@@ -156,6 +156,16 @@ def cron():
     daily_news_result = gen_daily_news()
     daily_news_ok = daily_news_result is not None
 
+    # Verify daily news is accessible via API after generation
+    verify_ok = False
+    if daily_news_ok:
+        verified = get_daily_news(today)
+        verify_ok = verified is not None
+        if not verify_ok:
+            logger.error(f"Daily news generated but NOT found in DB for {today}, retrying...")
+            daily_news_result = gen_daily_news(force=True)
+            verify_ok = get_daily_news(today) is not None
+
     return jsonify({
         "mode": "full_run",
         "scrape": results,
@@ -164,4 +174,5 @@ def cron():
         "digest": len(digest),
         "ai_picks": len(ai_picks),
         "daily_news": daily_news_ok,
+        "daily_news_verified": verify_ok,
     })
