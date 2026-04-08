@@ -110,10 +110,28 @@ def cron():
     from backend.db import init_db
     init_db()
 
+    from backend.daily_news import generate_daily_news as gen_daily_news
+    from backend.db.queries import get_daily_news
+
+    # Check if daily news already exists for today
+    from datetime import date
+    today = date.today().isoformat()
+    existing_news = get_daily_news(today)
+
+    if existing_news:
+        # Health check run (14:00 / 20:00 Beijing time):
+        # Daily news already generated, just verify it's there
+        return jsonify({
+            "mode": "health_check",
+            "daily_news": True,
+            "news_date": today,
+        })
+
+    # Main run (08:00 Beijing time) or retry if previous run failed:
+    # Full scrape + classify + translate + generate daily news
     from backend.scheduler import run_all
     results = run_all()
 
-    # Auto-classify + translate new tools
     from backend.db.queries import get_unclassified_tools, save_classification, get_untranslated_tools, save_translation
     from backend.classifier import classify_tool
     from backend.translate import translate_tool
@@ -130,19 +148,16 @@ def cron():
         save_translation(tool["id"], result.get("title_zh", ""), result.get("description_zh", ""))
         translated += 1
 
-    # Generate daily digest (3 tool picks + 2 hot news)
     digest = generate_daily_digest()
 
-    # Generate AI recommendations
     from backend.ai_recommend import generate_recommendations
     ai_picks = generate_recommendations()
 
-    # Generate AI daily news briefing
-    from backend.daily_news import generate_daily_news as gen_daily_news
     daily_news_result = gen_daily_news()
     daily_news_ok = daily_news_result is not None
 
     return jsonify({
+        "mode": "full_run",
         "scrape": results,
         "classified": classified,
         "translated": translated,
