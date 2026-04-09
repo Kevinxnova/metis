@@ -40,11 +40,11 @@ def run_all():
     logger.info(f"Scrape complete: {total_found} total, {total_new} new tools")
 
     if total_new > 0:
-        logger.info(f"New tools found, running AI recommendations...")
-        from backend.ai_recommend import generate_recommendations, categorize_and_summarize
+        logger.info(f"New tools found, running categorization...")
+        from backend.ai_recommend import categorize_and_summarize
         from backend.db import get_db
 
-        # 获取今日新增且尚未生成摘要的工具 ID
+        # 获取今日新增且尚未生��摘要的工具 ID
         with get_db() as db:
             rows = db.execute(
                 "SELECT id FROM tools WHERE date(first_seen) = date('now') AND short_summary IS NULL"
@@ -56,18 +56,7 @@ def run_all():
             n = categorize_and_summarize(new_ids)
             logger.info(f"Categorized {n} tools")
 
-        picks = generate_recommendations()
-        logger.info(f"AI recommendations: {len(picks)} picks generated")
-
-    # Generate AI daily news briefing
-    logger.info("Generating AI daily news...")
-    from backend.daily_news import generate_daily_news
-    daily = generate_daily_news()
-    if daily:
-        logger.info(f"AI daily news generated for {daily.get('news_date', 'today')}")
-    else:
-        logger.warning("AI daily news generation skipped or failed")
-
+    # Note: daily_news and recommendations are handled by cron.py after run_all()
     return results
 
 
