@@ -228,20 +228,46 @@ def cron():
         ai_picks = generate_recommendations()
         status["ai_picks"] = len(ai_picks)
 
-    # ── Summary ──
+    # ── Summary & Verification ──
     elapsed = round(time.time() - start_time, 1)
     remaining_classify = len(get_unclassified_tools(limit=1))
     remaining_translate = len(get_untranslated_tools(limit=1))
-    all_done = (status["daily_news_verified"]
+
+    with get_db() as db:
+        tool_count_today = db.execute(
+            "SELECT COUNT(*) FROM tools WHERE date(first_seen) = ?", (today,)
+        ).fetchone()[0]
+
+    has_digest = len(get_daily_digest()) > 0
+    has_news = get_daily_news(today) is not None
+
+    all_done = (has_news
                 and remaining_classify == 0
-                and remaining_translate == 0)
+                and remaining_translate == 0
+                and has_digest
+                and tool_count_today > 0)
 
     status["elapsed_seconds"] = elapsed
     status["all_tasks_complete"] = all_done
+    status["remaining_classify"] = remaining_classify > 0
+    status["remaining_translate"] = remaining_translate > 0
+    status["has_digest"] = has_digest
+    status["tools_today"] = tool_count_today
     status["mode"] = "complete" if all_done else "partial"
 
     if not all_done:
-        logger.info(f"Partial run in {elapsed}s. Remaining: classify={remaining_classify > 0}, translate={remaining_translate > 0}")
+        missing = []
+        if tool_count_today == 0:
+            missing.append("scrape")
+        if not has_news:
+            missing.append("daily_news")
+        if remaining_classify > 0:
+            missing.append("classify")
+        if remaining_translate > 0:
+            missing.append("translate")
+        if not has_digest:
+            missing.append("digest")
+        logger.warning(f"Incomplete after {elapsed}s. Missing: {', '.join(missing)}")
     else:
         logger.info(f"All tasks complete in {elapsed}s")
 
