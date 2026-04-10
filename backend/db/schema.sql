@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS cron_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_date TEXT NOT NULL,
     task_name TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('success', 'error', 'timeout', 'skipped')),
+    status TEXT NOT NULL,
     steps TEXT DEFAULT '{}',
     error_message TEXT,
     duration_seconds REAL,
