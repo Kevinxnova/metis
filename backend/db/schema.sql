@@ -87,6 +87,21 @@ CREATE TABLE IF NOT EXISTS ai_daily_news (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS cron_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date TEXT NOT NULL,
+    task_name TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('success', 'error', 'timeout', 'skipped')),
+    steps TEXT DEFAULT '{}',
+    error_message TEXT,
+    duration_seconds REAL,
+    metadata TEXT DEFAULT '{}',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cron_logs_date ON cron_logs(run_date);
+CREATE INDEX IF NOT EXISTS idx_cron_logs_task ON cron_logs(task_name);
+
 CREATE INDEX IF NOT EXISTS idx_daily_news_date ON ai_daily_news(news_date);
 
 CREATE INDEX IF NOT EXISTS idx_tools_status ON tools(status);

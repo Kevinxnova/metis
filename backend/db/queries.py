@@ -494,3 +494,43 @@ def get_daily_news_list(limit: int = 7, offset: int = 0) -> list[dict]:
             (limit, offset)
         ).fetchall()
         return [dict(row) for row in rows]
+
+
+# --- Cron Logs ---
+
+def log_cron_run(run_date: str, task_name: str, status: str,
+                 steps: dict | None = None, error_message: str | None = None,
+                 duration_seconds: float = 0, metadata: dict | None = None):
+    """Log a cron task execution."""
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO cron_logs
+               (run_date, task_name, status, steps, error_message, duration_seconds, metadata)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (run_date, task_name, status,
+             json.dumps(steps or {}), error_message,
+             round(duration_seconds, 2),
+             json.dumps(metadata or {}))
+        )
+
+
+def get_cron_logs(limit: int = 50, task_name: str | None = None) -> list[dict]:
+    """Get recent cron logs, optionally filtered by task name."""
+    with get_db() as db:
+        if task_name:
+            rows = db.execute(
+                "SELECT * FROM cron_logs WHERE task_name = ? ORDER BY created_at DESC LIMIT ?",
+                (task_name, limit)
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM cron_logs ORDER BY created_at DESC LIMIT ?",
+                (limit,)
+            ).fetchall()
+        result = []
+        for row in rows:
+            d = dict(row)
+            d["steps"] = json.loads(d["steps"])
+            d["metadata"] = json.loads(d["metadata"])
+            result.append(d)
+        return result
