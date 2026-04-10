@@ -337,5 +337,15 @@ def generate_daily_news_route():
     return jsonify({"ok": True, "news": result})
 
 
+# --- Cron Logs ---
+
+@app.route("/api/cron-logs")
+def cron_logs():
+    from backend.db.queries import get_cron_logs
+    task = request.args.get("task")
+    limit = int(request.args.get("limit", 50))
+    return jsonify(get_cron_logs(limit=limit, task_name=task))
+
+
 # Init DB on import
 init_db()
