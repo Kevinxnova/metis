@@ -4,33 +4,49 @@
   "functions": {
     "api/cron.py": {
       "maxDuration": 600
+    },
+    "api/cron_scrape.py": {
+      "maxDuration": 600
+    },
+    "api/cron_daily_news.py": {
+      "maxDuration": 300
+    },
+    "api/cron_classify.py": {
+      "maxDuration": 600
+    },
+    "api/cron_digest.py": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
+    { "source": "/api/cron/scrape", "destination": "/api/cron_scrape.py" },
+    { "source": "/api/cron/daily-news", "destination": "/api/cron_daily_news.py" },
+    { "source": "/api/cron/classify", "destination": "/api/cron_classify.py" },
+    { "source": "/api/cron/digest", "destination": "/api/cron_digest.py" },
     { "source": "/api/cron", "destination": "/api/cron.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
     {
-      "path": "/api/cron",
+      "path": "/api/cron/scrape",
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron",
+      "path": "/api/cron/daily-news",
       "schedule": "30 0 * * *"
     },
     {
-      "path": "/api/cron",
+      "path": "/api/cron/classify",
       "schedule": "0 1 * * *"
     },
     {
-      "path": "/api/cron",
-      "schedule": "0 6 * * *"
+      "path": "/api/cron/digest",
+      "schedule": "30 1 * * *"
     },
     {
-      "path": "/api/cron",
-      "schedule": "0 12 * * *"
+      "path": "/api/cron/daily-news",
+      "schedule": "0 6 * * *"
     }
   ]
 }
