@@ -331,10 +331,11 @@ def daily_news_list():
 def generate_daily_news_route():
     from backend.daily_news import generate_daily_news
     force = request.args.get("force", "false").lower() == "true"
-    result = generate_daily_news(force=force)
-    if not result:
-        return jsonify({"detail": "Generation failed — check logs or news availability"}), 500
-    return jsonify({"ok": True, "news": result})
+    try:
+        result = generate_daily_news(force=force)
+        return jsonify({"ok": True, "news": result})
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
 
 
 # --- Cron Logs ---

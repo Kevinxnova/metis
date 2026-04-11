@@ -126,19 +126,13 @@ def task_daily_news() -> dict:
         result = generate_daily_news(target_date=today, force=False)
 
         elapsed = time.time() - start
-        if result:
-            headline_count = len(result.get("headlines", []))
-            steps["headlines"] = headline_count
-            steps["quick_bites"] = len(result.get("quick_bites", []))
-            log_cron_run(today, "daily_news", "success", steps=steps,
-                         duration_seconds=elapsed,
-                         metadata={"headlines": headline_count})
-            return {"status": "success", "headlines": headline_count}
-        else:
-            log_cron_run(today, "daily_news", "error", steps=steps,
-                         error_message="generate_daily_news returned None",
-                         duration_seconds=elapsed)
-            return {"status": "error", "error": "generation returned None"}
+        headline_count = len(result.get("headlines", []))
+        steps["headlines"] = headline_count
+        steps["quick_bites"] = len(result.get("quick_bites", []))
+        log_cron_run(today, "daily_news", "success", steps=steps,
+                     duration_seconds=elapsed,
+                     metadata={"headlines": headline_count})
+        return {"status": "success", "headlines": headline_count}
 
     except Exception as e:
         elapsed = time.time() - start

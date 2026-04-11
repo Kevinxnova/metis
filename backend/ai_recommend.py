@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
 """
 
 
-def _minimax_chat(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+def _minimax_chat(prompt: str, max_tokens: int = 196608, temperature: float = 0.7) -> str:
     """Call MiniMax native API and return response text."""
     payload = json.dumps({
         "model": MINIMAX_MODEL,
@@ -51,6 +51,9 @@ def _minimax_chat(prompt: str, max_tokens: int = 2000, temperature: float = 0.7)
     )
     resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=300)
     data = json.loads(resp.read().decode("utf-8"))
+    base_resp = data.get("base_resp", {})
+    if base_resp.get("status_code", 0) != 0:
+        raise RuntimeError(f"MiniMax API error {base_resp.get('status_code')}: {base_resp.get('status_msg')}")
     return data["choices"][0]["message"]["content"].strip()
 
 
@@ -164,7 +167,7 @@ def generate_recommendations() -> list[dict]:
 严格按以下JSON格式返回，不要有其他文字：
 {{"picks": [{{"id": 123, "reason": "中文理由", "use_cases": "中文场景", "reason_en": "English reason", "use_cases_en": "English use cases", "score": 9}}]}}"""
 
-        text = _minimax_chat(prompt, max_tokens=2000, temperature=0.7)
+        text = _minimax_chat(prompt, temperature=0.7)
         text = _extract_json(text)
 
         logger.info(f"MiniMax response (first 200 chars): {text[:200]}")
@@ -202,7 +205,7 @@ def _classify_batch(tool_list: list[dict]) -> list[dict]:
         f"Data: {json.dumps(tool_list, ensure_ascii=False)}\n"
         f'Return: {{"results":[{{"id":1,"discovery_category":"ai_tool"}}]}}'
     )
-    text = _minimax_chat(prompt, max_tokens=10000, temperature=0.1)
+    text = _minimax_chat(prompt, temperature=0.1)
     text = _extract_json(text)
     return json.loads(text).get("results", [])
 
@@ -217,7 +220,7 @@ def _summarize_batch(tool_list: list[dict]) -> list[dict]:
         f"Items: {items_json}\n"
         f'Format: {{"r":[{{"id":1,"s":"Name — what it does","z":"名称 — 功能"}}]}}'
     )
-    text = _minimax_chat(prompt, max_tokens=6000, temperature=0.1)
+    text = _minimax_chat(prompt, temperature=0.1)
     text = _extract_json(text)
     data = json.loads(text)
     # support both key names

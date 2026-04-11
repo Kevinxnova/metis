@@ -126,6 +126,9 @@ def generate_daily_news(target_date: str | None = None, force: bool = False) -> 
 
     Returns:
         The daily news dict, or None if generation failed.
+
+    Raises:
+        RuntimeError: With descriptive message when generation fails.
     """
     _ensure_table()
     today = target_date or date.today().isoformat()
@@ -138,14 +141,12 @@ def generate_daily_news(target_date: str | None = None, force: bool = False) -> 
             return cached
 
     if not MINIMAX_API_KEY:
-        logger.warning("No MINIMAX_API_KEY set, skipping daily news generation")
-        return None
+        raise RuntimeError("MINIMAX_API_KEY not set")
 
     # Gather AI news
     news_items = _get_ai_news_for_date(target_date)
     if not news_items:
-        logger.warning(f"No AI news found for {today}, skipping daily news")
-        return None
+        raise RuntimeError(f"No AI news found for {today}")
 
     logger.info(f"Generating daily news for {today} from {len(news_items)} items")
 
@@ -173,32 +174,27 @@ def generate_daily_news(target_date: str | None = None, force: bool = False) -> 
         today=today,
     )
 
-    try:
-        text = _minimax_chat(prompt, max_tokens=3000, temperature=0.7)
-        text = _extract_json(text)
-        logger.info(f"MiniMax daily news response (first 200 chars): {text[:200]}")
+    text = _minimax_chat(prompt, temperature=0.7)
+    text = _extract_json(text)
+    logger.info(f"MiniMax daily news response (first 200 chars): {text[:200]}")
 
-        data = json.loads(text)
-        headlines = data.get("headlines", [])
-        quick_bites = data.get("quick_bites", [])
-        editor_take = data.get("editor_take", "")
-        editor_take_en = data.get("editor_take_en", "")
+    data = json.loads(text)
+    headlines = data.get("headlines", [])
+    quick_bites = data.get("quick_bites", [])
+    editor_take = data.get("editor_take", "")
+    editor_take_en = data.get("editor_take_en", "")
 
-        save_daily_news(
-            news_date=today,
-            headlines=headlines,
-            quick_bites=quick_bites,
-            editor_take=editor_take,
-            editor_take_en=editor_take_en,
-            source_tool_ids=source_ids,
-            model=MINIMAX_MODEL,
-        )
+    save_daily_news(
+        news_date=today,
+        headlines=headlines,
+        quick_bites=quick_bites,
+        editor_take=editor_take,
+        editor_take_en=editor_take_en,
+        source_tool_ids=source_ids,
+        model=MINIMAX_MODEL,
+    )
 
-        return get_daily_news(today)
-
-    except Exception as e:
-        logger.error(f"Daily news generation failed: {e}")
-        return None
+    return get_daily_news(today)
 
 
 def generate_daily_digest() -> list[dict]:

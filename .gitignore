@@ -21,3 +21,5 @@ data/*.db-shm
 
 # OS
 .DS_Store
+.gstack/
+.vercel
