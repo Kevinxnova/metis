@@ -314,6 +314,16 @@ def get_untranslated_tools(limit: int = 20) -> list[dict]:
         return [dict(row) for row in rows]
 
 
+def get_uncategorized_tool_ids(limit: int = 200) -> list[int]:
+    """Get IDs of tools missing discovery_category or short_summary."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT id FROM tools WHERE short_summary IS NULL ORDER BY first_seen DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [row[0] for row in rows]
+
+
 def tool_exists(dedup_key: str) -> bool:
     """Check if a tool with this dedup_key exists."""
     with get_db() as db:

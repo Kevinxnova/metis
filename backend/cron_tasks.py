@@ -9,7 +9,7 @@ from backend.db import init_db, get_db
 from backend.db.queries import (
     log_cron_run, get_daily_news, get_unclassified_tools,
     save_classification, get_untranslated_tools, save_translation,
-    get_daily_digest,
+    get_daily_digest, get_uncategorized_tool_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,22 +63,6 @@ def task_scrape() -> dict:
                     "error": str(e),
                     "duration_s": round(time.time() - s_start, 1),
                 }
-
-        # Run categorization for new tools
-        if total_new > 0:
-            try:
-                from backend.ai_recommend import categorize_and_summarize
-                with get_db() as db:
-                    rows = db.execute(
-                        "SELECT id FROM tools WHERE date(first_seen) = ? AND short_summary IS NULL",
-                        (today,)
-                    ).fetchall()
-                new_ids = [r[0] for r in rows]
-                if new_ids:
-                    n = categorize_and_summarize(new_ids)
-                    steps["categorize"] = {"count": n}
-            except Exception as e:
-                steps["categorize"] = {"error": str(e)}
 
         elapsed = time.time() - start
         log_cron_run(today, "scrape", "success", steps=steps,
@@ -142,43 +126,75 @@ def task_daily_news() -> dict:
 
 
 def task_classify() -> dict:
-    """Classify and translate unprocessed tools. Returns status dict."""
+    """Classify, summarize, and translate all unprocessed tools in batches.
+
+    Three steps, all loop until done or time limit (550s):
+    1. discovery_category + short_summary via MiniMax (batches of 200)
+    2. content_type + domain via classifier (one by one)
+    3. title_zh + description_zh translation (one by one)
+    """
     init_db()
     today = date.today().isoformat()
     start = time.time()
-    steps = {"classified": 0, "translated": 0}
+    TIME_LIMIT = 550  # leave buffer for 600s max
+    BATCH_SIZE = 200
+    steps = {"categorized": 0, "classified": 0, "translated": 0}
 
     try:
+        # Step 1: discovery_category + short_summary (most important for frontend)
+        from backend.ai_recommend import categorize_and_summarize
+
+        while time.time() - start < TIME_LIMIT:
+            tool_ids = get_uncategorized_tool_ids(limit=BATCH_SIZE)
+            if not tool_ids:
+                break
+            try:
+                n = categorize_and_summarize(tool_ids)
+                steps["categorized"] += n
+            except Exception as e:
+                steps.setdefault("categorize_errors", []).append(str(e))
+                break  # API error, stop retrying
+
+        # Step 2: content_type + domain classification
         from backend.classifier import classify_tool
 
-        for tool in get_unclassified_tools(limit=100):
-            if time.time() - start > 500:  # Leave buffer
+        while time.time() - start < TIME_LIMIT:
+            batch = get_unclassified_tools(limit=100)
+            if not batch:
                 break
-            try:
-                ct, domain = classify_tool(tool)
-                save_classification(tool["id"], ct, domain)
-                steps["classified"] += 1
-            except Exception as e:
-                steps.setdefault("classify_errors", []).append(
-                    {"id": tool["id"], "error": str(e)})
+            for tool in batch:
+                if time.time() - start > TIME_LIMIT:
+                    break
+                try:
+                    ct, domain = classify_tool(tool)
+                    save_classification(tool["id"], ct, domain)
+                    steps["classified"] += 1
+                except Exception as e:
+                    steps.setdefault("classify_errors", []).append(
+                        {"id": tool["id"], "error": str(e)})
 
+        # Step 3: Chinese translations
         from backend.translate import translate_tool
-        for tool in get_untranslated_tools(limit=100):
-            if time.time() - start > 500:
+
+        while time.time() - start < TIME_LIMIT:
+            batch = get_untranslated_tools(limit=100)
+            if not batch:
                 break
-            try:
-                result = translate_tool(tool)
-                save_translation(tool["id"], result.get("title_zh", ""), result.get("description_zh", ""))
-                steps["translated"] += 1
-            except Exception as e:
-                steps.setdefault("translate_errors", []).append(
-                    {"id": tool["id"], "error": str(e)})
+            for tool in batch:
+                if time.time() - start > TIME_LIMIT:
+                    break
+                try:
+                    result = translate_tool(tool)
+                    save_translation(tool["id"], result.get("title_zh", ""), result.get("description_zh", ""))
+                    steps["translated"] += 1
+                except Exception as e:
+                    steps.setdefault("translate_errors", []).append(
+                        {"id": tool["id"], "error": str(e)})
 
         elapsed = time.time() - start
-        remaining_c = len(get_unclassified_tools(limit=1))
-        remaining_t = len(get_untranslated_tools(limit=1))
-        steps["remaining_classify"] = remaining_c > 0
-        steps["remaining_translate"] = remaining_t > 0
+        steps["remaining_categorize"] = len(get_uncategorized_tool_ids(limit=1)) > 0
+        steps["remaining_classify"] = len(get_unclassified_tools(limit=1)) > 0
+        steps["remaining_translate"] = len(get_untranslated_tools(limit=1)) > 0
 
         log_cron_run(today, "classify", "success", steps=steps,
                      duration_seconds=elapsed)
