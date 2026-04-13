@@ -177,7 +177,7 @@ def get_week_tools() -> list[dict]:
             FROM tools
             WHERE first_seen >= date('now', '-7 days')
             ORDER BY sort_score DESC
-            LIMIT 500"""
+            LIMIT 2000"""
         ).fetchall()
         return [dict(row) for row in rows]
 
@@ -315,10 +315,15 @@ def get_untranslated_tools(limit: int = 20) -> list[dict]:
 
 
 def get_uncategorized_tool_ids(limit: int = 200) -> list[int]:
-    """Get IDs of tools missing discovery_category."""
+    """Get IDs of tools that need MiniMax categorization.
+    Matches tools with default 'other' + no summary (never processed by MiniMax),
+    or NULL discovery_category."""
     with get_db() as db:
         rows = db.execute(
-            "SELECT id FROM tools WHERE discovery_category IS NULL ORDER BY first_seen DESC LIMIT ?",
+            """SELECT id FROM tools
+               WHERE discovery_category IS NULL
+                  OR (discovery_category = 'other' AND short_summary IS NULL)
+               ORDER BY first_seen DESC LIMIT ?""",
             (limit,)
         ).fetchall()
         return [row[0] for row in rows]
@@ -328,7 +333,10 @@ def get_unsummarized_tool_ids(limit: int = 200) -> list[int]:
     """Get IDs of tools that have been categorized but still lack short_summary."""
     with get_db() as db:
         rows = db.execute(
-            "SELECT id FROM tools WHERE short_summary IS NULL AND discovery_category IS NOT NULL ORDER BY first_seen DESC LIMIT ?",
+            """SELECT id FROM tools
+               WHERE short_summary IS NULL
+                 AND discovery_category IS NOT NULL
+               ORDER BY first_seen DESC LIMIT ?""",
             (limit,)
         ).fetchall()
         return [row[0] for row in rows]
