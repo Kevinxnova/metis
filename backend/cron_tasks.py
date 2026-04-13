@@ -10,6 +10,7 @@ from backend.db.queries import (
     log_cron_run, get_daily_news, get_unclassified_tools,
     save_classification, get_untranslated_tools, save_translation,
     get_daily_digest, get_uncategorized_tool_ids, get_unsummarized_tool_ids,
+    get_unscored_tool_ids, get_tools_without_intro,
 )
 
 logger = logging.getLogger(__name__)
@@ -191,11 +192,41 @@ def task_classify() -> dict:
                     steps.setdefault("translate_errors", []).append(
                         {"id": tool["id"], "error": str(e)})
 
+        # Step 5: trending_score (only for tools without a score)
+        from backend.ai_recommend import score_tools, generate_intros
+
+        steps["scored"] = 0
+        while time.time() - start < TIME_LIMIT:
+            tool_ids = get_unscored_tool_ids(limit=BATCH_SIZE)
+            if not tool_ids:
+                break
+            n, errs = score_tools(tool_ids)
+            steps["scored"] += n
+            if errs:
+                steps.setdefault("score_errors", []).extend(errs)
+            if n == 0:
+                break
+
+        # Step 6: ai_intro (only for tools without an intro)
+        steps["intros_generated"] = 0
+        while time.time() - start < TIME_LIMIT:
+            tool_ids = get_tools_without_intro(limit=BATCH_SIZE)
+            if not tool_ids:
+                break
+            n, errs = generate_intros(tool_ids)
+            steps["intros_generated"] += n
+            if errs:
+                steps.setdefault("intro_errors", []).extend(errs)
+            if n == 0:
+                break
+
         elapsed = time.time() - start
         steps["remaining_categorize"] = len(get_uncategorized_tool_ids(limit=1)) > 0
         steps["remaining_summarize"] = len(get_unsummarized_tool_ids(limit=1)) > 0
         steps["remaining_classify"] = len(get_unclassified_tools(limit=1)) > 0
         steps["remaining_translate"] = len(get_untranslated_tools(limit=1)) > 0
+        steps["remaining_score"] = len(get_unscored_tool_ids(limit=1)) > 0
+        steps["remaining_intro"] = len(get_tools_without_intro(limit=1)) > 0
 
         log_cron_run(today, "classify", "success", steps=steps,
                      duration_seconds=elapsed)
