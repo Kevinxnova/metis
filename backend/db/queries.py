@@ -164,20 +164,36 @@ def get_today_tools() -> list[dict]:
 
 
 def get_week_tools() -> list[dict]:
-    """Get this week's tools (last 7 days), sorted by metrics. Returns minimal fields for frontend."""
+    """Get this week's top tools: 20 per discovery_category, sorted by trending_score.
+    Falls back to metrics-based sort_score for tools without trending_score."""
     with get_db() as db:
         rows = db.execute(
-            """SELECT id, title, title_zh, url, discovery_category, short_summary, short_summary_zh, metrics, first_seen,
-                COALESCE(
-                    json_extract(metrics, '$.stars'),
-                    json_extract(metrics, '$.points'),
-                    json_extract(metrics, '$.votes'),
-                    0
-                ) as sort_score
-            FROM tools
-            WHERE first_seen >= date('now', '-7 days')
-            ORDER BY sort_score DESC
-            LIMIT 2000"""
+            """WITH ranked AS (
+                SELECT *,
+                    COALESCE(trending_score,
+                        COALESCE(
+                            json_extract(metrics, '$.stars'),
+                            json_extract(metrics, '$.points'),
+                            json_extract(metrics, '$.votes'),
+                            0
+                        )
+                    ) as effective_score,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY discovery_category
+                        ORDER BY COALESCE(trending_score,
+                            COALESCE(
+                                json_extract(metrics, '$.stars'),
+                                json_extract(metrics, '$.points'),
+                                json_extract(metrics, '$.votes'),
+                                0
+                            )
+                        ) DESC
+                    ) as rn
+                FROM tools
+                WHERE first_seen >= date('now', '-7 days')
+            )
+            SELECT * FROM ranked WHERE rn <= 20
+            ORDER BY discovery_category, effective_score DESC"""
         ).fetchall()
         return [dict(row) for row in rows]
 
@@ -336,6 +352,30 @@ def get_unsummarized_tool_ids(limit: int = 200) -> list[int]:
             """SELECT id FROM tools
                WHERE short_summary IS NULL
                  AND discovery_category IS NOT NULL
+               ORDER BY first_seen DESC LIMIT ?""",
+            (limit,)
+        ).fetchall()
+        return [row[0] for row in rows]
+
+
+def get_unscored_tool_ids(limit: int = 200) -> list[int]:
+    """Get IDs of tools that don't have a trending_score yet."""
+    with get_db() as db:
+        rows = db.execute(
+            """SELECT id FROM tools
+               WHERE trending_score IS NULL
+               ORDER BY first_seen DESC LIMIT ?""",
+            (limit,)
+        ).fetchall()
+        return [row[0] for row in rows]
+
+
+def get_tools_without_intro(limit: int = 200) -> list[int]:
+    """Get IDs of tools that don't have an ai_intro yet."""
+    with get_db() as db:
+        rows = db.execute(
+            """SELECT id FROM tools
+               WHERE ai_intro IS NULL
                ORDER BY first_seen DESC LIMIT ?""",
             (limit,)
         ).fetchall()
