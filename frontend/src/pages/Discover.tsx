@@ -181,9 +181,9 @@ export default function Discover({ lang }: { lang: Lang }) {
               const otherTools = sortByScore(weekTools.filter(t => !categorizedIds.has(t.id)))
 
               const modules = [
-                { key: 'news',    icon: '📰', labelZh: 'AI 动态',  labelEn: 'AI News',  color: 'var(--accent-blue)',   border: 'rgba(96,165,250,0.2)',   bg: 'rgba(96,165,250,0.05)',   tools: newsTools },
-                { key: 'ai_tool', icon: '🔧', labelZh: 'AI 工具',  labelEn: 'AI Tools', color: 'var(--accent-purple)', border: 'rgba(167,139,250,0.2)',  bg: 'rgba(167,139,250,0.05)', tools: aiTools },
-                { key: 'other',   icon: '🌐', labelZh: '其他',     labelEn: 'Others',   color: 'var(--text-body)',     border: 'rgba(255,255,255,0.1)',  bg: 'rgba(255,255,255,0.02)', tools: otherTools },
+                { key: 'news',    icon: '📰', labelZh: 'AI 动态',  labelEn: 'AI News',  tools: newsTools },
+                { key: 'ai_tool', icon: '🔧', labelZh: 'AI 工具',  labelEn: 'AI Tools', tools: aiTools },
+                { key: 'other',   icon: '🌐', labelZh: '其他',     labelEn: 'Others',   tools: otherTools },
               ]
 
               return (
@@ -208,9 +208,6 @@ export default function Discover({ lang }: { lang: Lang }) {
                         key={mod.key}
                         icon={mod.icon}
                         label={isZh ? mod.labelZh : mod.labelEn}
-                        color={mod.color}
-                        border={mod.border}
-                        bg={mod.bg}
                         tools={mod.tools}
                         isZh={isZh}
                         onSelect={setSelectedTool}
@@ -234,17 +231,22 @@ export default function Discover({ lang }: { lang: Lang }) {
   )
 }
 
-function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect }: {
-  icon: string; label: string; color: string; border: string; bg: string
+function DiscoveryModule({ icon, label, tools, isZh, onSelect }: {
+  icon: string; label: string
   tools: Tool[]; isZh: boolean; onSelect: (t: Tool) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const TOP = 5
-  const shown = expanded ? tools : tools.slice(0, TOP)
+  const DEFAULT_SHOW = 10
+  const MAX_SHOW = 20
+  const shown = expanded ? tools.slice(0, MAX_SHOW) : tools.slice(0, DEFAULT_SHOW)
+
+  const borderColor = 'rgba(96,165,250,0.2)'
+  const bgColor = 'rgba(96,165,250,0.05)'
+  const accentColor = 'var(--accent-blue)'
 
   return (
-    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, overflow: 'hidden' }}>
-      {/* Header row — always visible, click to expand */}
+    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10, overflow: 'hidden' }}>
+      {/* Header row */}
       <div
         onClick={() => tools.length > 0 && setExpanded(e => !e)}
         style={{
@@ -253,14 +255,14 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
         }}
       >
         <span style={{ fontSize: 14 }}>{icon}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color, flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: accentColor, flex: 1 }}>{label}</span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tools.length}</span>
         {tools.length > 0 && (
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{expanded ? '↑' : '↓'}</span>
         )}
       </div>
 
-      {/* Items — shown when expanded or first TOP items */}
+      {/* Items */}
       {tools.length === 0 ? (
         <p style={{ color: 'var(--text-dim)', fontSize: 12, margin: 0, padding: '0 16px 12px' }}>
           {isZh ? '暂无内容' : 'Nothing yet'}
@@ -280,7 +282,7 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
                 onClick={() => onSelect(tool)}
                 style={{
                   display: 'flex', alignItems: 'baseline', gap: 6,
-                  padding: '6px 0', borderTop: i === 0 ? `1px solid ${border}` : '1px solid var(--border-subtle)',
+                  padding: '6px 0', borderTop: i === 0 ? `1px solid ${borderColor}` : '1px solid var(--border-subtle)',
                   cursor: 'pointer',
                 }}
               >
@@ -297,14 +299,14 @@ function DiscoveryModule({ icon, label, color, border, bg, tools, isZh, onSelect
               </div>
             )
           })}
-          {tools.length > TOP && (
+          {tools.length > DEFAULT_SHOW && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
               style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               {expanded
                 ? (isZh ? '收起 ↑' : 'Collapse ↑')
-                : (isZh ? `查看全部 ${tools.length} 条 ↓` : `Show all ${tools.length} ↓`)}
+                : (isZh ? `查看全部 ${Math.min(tools.length, MAX_SHOW)} 条 ↓` : `Show all ${Math.min(tools.length, MAX_SHOW)} ↓`)}
             </button>
           )}
         </div>
