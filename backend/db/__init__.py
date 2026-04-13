@@ -171,6 +171,9 @@ def init_db():
             ("discovery_category", "TEXT DEFAULT 'other'"),
             ("short_summary", "TEXT"),
             ("short_summary_zh", "TEXT"),
+            ("trending_score", "REAL"),
+            ("ai_intro", "TEXT"),
+            ("ai_intro_zh", "TEXT"),
         ]:
             if col not in cols:
                 conn.execute(f"ALTER TABLE tools ADD COLUMN {col} {default}")
