@@ -32,6 +32,9 @@ export interface Tool {
   discovery_category?: 'news' | 'ai_tool' | 'other' | null
   short_summary?: string | null
   short_summary_zh?: string | null
+  trending_score?: number | null
+  ai_intro?: string | null
+  ai_intro_zh?: string | null
 }
 
 export interface CategoryCounts {
