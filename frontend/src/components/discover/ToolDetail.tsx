@@ -156,7 +156,23 @@ export default function ToolDetail({ tool, lang, onBack }: Props) {
           </div>
         )}
 
-        {/* Description */}
+        {/* AI Intro (structured, if available) */}
+        {(tool as any).ai_intro && (
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-body)', marginBottom: 12 }}>
+              {isZh ? 'AI 简介' : 'AI Introduction'}
+            </h2>
+            <div style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+              {((isZh && (tool as any).ai_intro_zh) ? (tool as any).ai_intro_zh : (tool as any).ai_intro)
+                .split('\n\n')
+                .map((para: string, i: number) => (
+                  <p key={i} style={{ margin: i === 0 ? 0 : '12px 0 0' }}>{para}</p>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Description (original) */}
         <div style={{ marginBottom: 32 }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-body)', marginBottom: 12 }}>
             {isZh ? '简介' : 'Description'}
