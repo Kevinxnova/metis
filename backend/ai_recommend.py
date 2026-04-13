@@ -68,6 +68,186 @@ def _extract_json(text: str) -> str:
     return text
 
 
+def _compute_metrics_score(tool: dict) -> float:
+    """Compute a normalized metrics score (0-40 points) from stars/points/votes/comments."""
+    metrics = json.loads(tool.get("metrics", "{}"))
+    stars = metrics.get("stars") or 0
+    points = metrics.get("points") or 0
+    votes = metrics.get("votes") or 0
+    comments = metrics.get("comments") or 0
+
+    import math
+    def log_norm(val, max_val):
+        if val <= 0:
+            return 0
+        return min(10, 10 * math.log1p(val) / math.log1p(max_val))
+
+    score = (
+        log_norm(stars, 10000) * 1.5 +     # stars weight: 15 max
+        log_norm(points, 500) * 1.0 +       # HN points weight: 10 max
+        log_norm(votes, 1000) * 0.8 +       # PH votes weight: 8 max
+        log_norm(comments, 200) * 0.7        # comments weight: 7 max
+    )
+    return round(score, 2)
+
+
+def _compute_freshness_score(tool: dict) -> float:
+    """Compute freshness score (0-20 points). Newer tools score higher."""
+    from datetime import datetime, timezone
+    first_seen = tool.get("first_seen", "")
+    try:
+        seen_dt = datetime.fromisoformat(first_seen.replace("Z", "+00:00"))
+        if seen_dt.tzinfo is None:
+            seen_dt = seen_dt.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        days_old = (now - seen_dt).total_seconds() / 86400
+        return round(max(0, 20 * (1 - days_old / 7)), 2)
+    except Exception:
+        return 10.0
+
+
+def _compute_multi_source_bonus(tool: dict) -> float:
+    """Bonus for tools discovered from multiple sources (0-10 points)."""
+    sources = json.loads(tool.get("sources", "[]"))
+    return min(10, max(0, (len(sources) - 1) * 5))
+
+
+def _ai_value_score_batch(tool_list: list[dict]) -> list[dict]:
+    """Ask MiniMax to score tools on value/impact/novelty. Returns list of {id, ai_value}."""
+    items = [{"id": t["id"], "title": t["title"], "desc": (t.get("description") or "")[:100]} for t in tool_list]
+    prompt = (
+        f"Rate each item's value to developers (0-30). Consider: practical utility, novelty, potential impact.\n"
+        f"Items: {json.dumps(items, ensure_ascii=False)}\n"
+        f'Return JSON only: {{"r":[{{"id":1,"v":25}}]}}'
+    )
+    text = _minimax_chat(prompt, max_tokens=4000, temperature=0.1)
+    text = _extract_json(text)
+    data = json.loads(text)
+    raw = data.get("r") or data.get("results") or []
+    return [{"id": item.get("id"), "ai_value": min(30, max(0, item.get("v", item.get("ai_value", 15))))} for item in raw]
+
+
+def score_tools(tool_ids: list[int]) -> tuple[int, list[str]]:
+    """Compute trending_score for tools. Score = metrics(0-40) + freshness(0-20) + multi_source(0-10) + ai_value(0-30).
+    Returns (count_scored, list_of_errors)."""
+    errors: list[str] = []
+    if not tool_ids:
+        return 0, errors
+
+    with get_db() as db:
+        rows = db.execute(
+            f"SELECT id, title, description, metrics, sources, first_seen FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
+            tool_ids
+        ).fetchall()
+
+    if not rows:
+        return 0, errors
+
+    tools = [dict(r) for r in rows]
+
+    scores: dict[int, float] = {}
+    for tool in tools:
+        tid = tool["id"]
+        scores[tid] = (
+            _compute_metrics_score(tool) +
+            _compute_freshness_score(tool) +
+            _compute_multi_source_bonus(tool)
+        )
+
+    SCORE_BATCH = 30
+    if MINIMAX_API_KEY:
+        for i in range(0, len(tools), SCORE_BATCH):
+            batch = tools[i:i + SCORE_BATCH]
+            try:
+                ai_scores = _ai_value_score_batch(batch)
+                for item in ai_scores:
+                    tid = item.get("id")
+                    if tid in scores:
+                        scores[tid] += item.get("ai_value", 15)
+            except Exception as e:
+                err = f"ai_value_score batch {i}-{i+SCORE_BATCH}: {e}"
+                logger.error(err)
+                errors.append(err)
+                for tool in batch:
+                    scores[tool["id"]] += 15
+    else:
+        for tid in scores:
+            scores[tid] += 15
+
+    scored = 0
+    with get_db() as db:
+        for tid, total in scores.items():
+            db.execute("UPDATE tools SET trending_score = ? WHERE id = ?", (round(total, 2), tid))
+            scored += 1
+
+    logger.info(f"Scored {scored} tools")
+    return scored, errors
+
+
+def _generate_intro_batch(tool_list: list[dict]) -> list[dict]:
+    """Generate structured AI intros for a batch of tools.
+    Returns list of {id, ai_intro, ai_intro_zh}."""
+    items = [{"id": t["id"], "title": t["title"], "desc": (t.get("description") or "")[:200],
+              "source": t.get("source", ""), "type": t.get("content_type", "")} for t in tool_list]
+    prompt = (
+        f"For each item, write a structured introduction in BOTH English and Chinese.\n"
+        f"Structure (3 short paragraphs each):\n"
+        f"1. What it is — one sentence positioning\n"
+        f"2. Core capabilities — key features and highlights\n"
+        f"3. Use cases — who should use it and what problems it solves\n\n"
+        f"Items: {json.dumps(items, ensure_ascii=False)}\n\n"
+        f'Return JSON only: {{"r":[{{"id":1,"en":"Para1\\n\\nPara2\\n\\nPara3","zh":"段落1\\n\\n段落2\\n\\n段落3"}}]}}'
+    )
+    text = _minimax_chat(prompt, max_tokens=10000, temperature=0.3)
+    text = _extract_json(text)
+    data = json.loads(text)
+    raw = data.get("r") or data.get("results") or []
+    return [{"id": item.get("id"),
+             "ai_intro": item.get("en", item.get("ai_intro", "")),
+             "ai_intro_zh": item.get("zh", item.get("ai_intro_zh", ""))} for item in raw]
+
+
+def generate_intros(tool_ids: list[int]) -> tuple[int, list[str]]:
+    """Generate AI intros for tools that don't have one yet.
+    Returns (count_generated, list_of_errors)."""
+    errors: list[str] = []
+    if not tool_ids or not MINIMAX_API_KEY:
+        return 0, errors
+
+    with get_db() as db:
+        rows = db.execute(
+            f"SELECT id, title, description, source, content_type FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
+            tool_ids
+        ).fetchall()
+
+    if not rows:
+        return 0, errors
+
+    tool_list = [dict(r) for r in rows]
+    generated = 0
+    INTRO_BATCH = 10
+
+    for i in range(0, len(tool_list), INTRO_BATCH):
+        batch = tool_list[i:i + INTRO_BATCH]
+        try:
+            results = _generate_intro_batch(batch)
+            with get_db() as db:
+                for r in results:
+                    tid = r.get("id")
+                    db.execute(
+                        "UPDATE tools SET ai_intro = ?, ai_intro_zh = ? WHERE id = ?",
+                        (r.get("ai_intro", ""), r.get("ai_intro_zh", ""), tid)
+                    )
+                    generated += 1
+        except Exception as e:
+            err = f"generate_intro batch {i}-{i+INTRO_BATCH}: {e}"
+            logger.error(err)
+            errors.append(err)
+
+    logger.info(f"Generated intros for {generated} tools")
+    return generated, errors
+
+
 def _ensure_table():
     with get_db() as db:
         db.execute(CACHE_TABLE)
