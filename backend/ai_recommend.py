@@ -252,10 +252,12 @@ def _summarize_batch(tool_list: list[dict]) -> list[dict]:
              "short_summary_zh": item.get("z", item.get("short_summary_zh", ""))} for item in raw]
 
 
-def categorize_tools(tool_ids: list[int]) -> int:
-    """Assign discovery_category to tools via MiniMax. Returns count of categorized tools."""
+def categorize_tools(tool_ids: list[int]) -> tuple[int, list[str]]:
+    """Assign discovery_category to tools via MiniMax.
+    Returns (count_categorized, list_of_errors)."""
+    errors: list[str] = []
     if not tool_ids or not MINIMAX_API_KEY:
-        return 0
+        return 0, errors
 
     with get_db() as db:
         rows = db.execute(
@@ -264,7 +266,7 @@ def categorize_tools(tool_ids: list[int]) -> int:
         ).fetchall()
 
     if not rows:
-        return 0
+        return 0, errors
 
     tool_list = [{"id": r["id"], "title": r["title"], "description": (r["description"] or "")[:120]} for r in rows]
 
@@ -281,23 +283,27 @@ def categorize_tools(tool_ids: list[int]) -> int:
                     cat = "other"
                 categories[tid] = cat
         except Exception as e:
-            logger.error(f"classify batch {i}-{i+CLASSIFY_BATCH} failed: {e}")
+            err = f"classify batch {i}-{i+CLASSIFY_BATCH}: {e}"
+            logger.error(err)
+            errors.append(err)
 
     if not categories:
-        return 0
+        return 0, errors
 
     with get_db() as db:
         for tid, cat in categories.items():
             db.execute("UPDATE tools SET discovery_category=? WHERE id=?", (cat, tid))
 
     logger.info(f"Categorized {len(categories)} tools")
-    return len(categories)
+    return len(categories), errors
 
 
-def summarize_tools(tool_ids: list[int]) -> int:
-    """Generate short_summary for tools via MiniMax. Returns count of summarized tools."""
+def summarize_tools(tool_ids: list[int]) -> tuple[int, list[str]]:
+    """Generate short_summary for tools via MiniMax.
+    Returns (count_summarized, list_of_errors)."""
+    errors: list[str] = []
     if not tool_ids or not MINIMAX_API_KEY:
-        return 0
+        return 0, errors
 
     with get_db() as db:
         rows = db.execute(
@@ -306,7 +312,7 @@ def summarize_tools(tool_ids: list[int]) -> int:
         ).fetchall()
 
     if not rows:
-        return 0
+        return 0, errors
 
     tool_list = [{"id": r["id"], "title": r["title"], "description": (r["description"] or "")[:120]} for r in rows]
 
@@ -327,7 +333,9 @@ def summarize_tools(tool_ids: list[int]) -> int:
                     )
                     summarized += 1
         except Exception as e:
-            logger.error(f"summarize batch {i}-{i+SUMMARY_BATCH} failed: {e}")
+            err = f"summarize batch {i}-{i+SUMMARY_BATCH}: {e}"
+            logger.error(err)
+            errors.append(err)
 
     logger.info(f"Summarized {summarized} tools")
-    return summarized
+    return summarized, errors

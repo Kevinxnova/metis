@@ -53,7 +53,7 @@ def run_all():
 
         if new_ids:
             logger.info(f"Categorizing {len(new_ids)} new tools...")
-            n_cat = categorize_tools(new_ids)
+            n_cat, _ = categorize_tools(new_ids)
             logger.info(f"Categorized {n_cat} tools")
 
         # 概要：已分类但缺 short_summary 的
@@ -65,7 +65,7 @@ def run_all():
 
         if sum_ids:
             logger.info(f"Summarizing {len(sum_ids)} tools...")
-            n_sum = summarize_tools(sum_ids)
+            n_sum, _ = summarize_tools(sum_ids)
             logger.info(f"Summarized {n_sum} tools")
 
     # Note: daily_news and recommendations are handled by cron.py after run_all()

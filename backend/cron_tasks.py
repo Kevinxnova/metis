@@ -136,24 +136,24 @@ def task_classify() -> dict:
             tool_ids = get_uncategorized_tool_ids(limit=BATCH_SIZE)
             if not tool_ids:
                 break
-            try:
-                n = categorize_tools(tool_ids)
-                steps["categorized"] += n
-            except Exception as e:
-                steps.setdefault("categorize_errors", []).append(str(e))
-                break  # API error, stop retrying
+            n, errs = categorize_tools(tool_ids)
+            steps["categorized"] += n
+            if errs:
+                steps.setdefault("categorize_errors", []).extend(errs)
+            if n == 0:
+                break  # no progress, stop to avoid idle loop
 
         # Step 2: short_summary (only for already-categorized tools)
         while time.time() - start < TIME_LIMIT:
             tool_ids = get_unsummarized_tool_ids(limit=BATCH_SIZE)
             if not tool_ids:
                 break
-            try:
-                n = summarize_tools(tool_ids)
-                steps["summarized"] += n
-            except Exception as e:
-                steps.setdefault("summarize_errors", []).append(str(e))
-                break  # API error, stop retrying
+            n, errs = summarize_tools(tool_ids)
+            steps["summarized"] += n
+            if errs:
+                steps.setdefault("summarize_errors", []).extend(errs)
+            if n == 0:
+                break  # no progress, stop to avoid idle loop
 
         # Step 3: content_type + domain classification
         from backend.classifier import classify_tool
