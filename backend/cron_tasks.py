@@ -114,13 +114,15 @@ def task_daily_news() -> dict:
 
 
 def task_classify() -> dict:
-    """Classify, summarize, and translate all unprocessed tools in batches.
+    """Classify, summarize, score, and generate intros for all unprocessed tools in batches.
 
-    Four independent steps, each loops until done or time limit (550s):
+    Six independent steps, each loops until done or time limit (550s):
     1. discovery_category via MiniMax (batches of 200)
     2. short_summary via MiniMax (batches of 200, only already-categorized tools)
     3. content_type + domain via classifier (one by one)
     4. title_zh + description_zh translation (one by one)
+    5. trending_score computation (metrics + freshness + AI value)
+    6. ai_intro generation (structured 3-paragraph intro, en + zh)
     """
     init_db()
     today = date.today().isoformat()

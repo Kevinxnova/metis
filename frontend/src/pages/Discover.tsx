@@ -169,6 +169,7 @@ export default function Discover({ lang }: { lang: Lang }) {
             {(() => {
               const sortByScore = (tools: Tool[]) => [...tools].sort((a, b) => {
                 const score = (t: Tool) => {
+                  if (t.trending_score != null) return t.trending_score
                   try { const m = JSON.parse(t.metrics || '{}'); return m.stars || m.points || m.votes || 0 } catch { return 0 }
                 }
                 return score(b) - score(a)
