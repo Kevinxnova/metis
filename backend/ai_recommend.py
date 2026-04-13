@@ -120,7 +120,7 @@ def _ai_value_score_batch(tool_list: list[dict]) -> list[dict]:
         f"Items: {json.dumps(items, ensure_ascii=False)}\n"
         f'Return JSON only: {{"r":[{{"id":1,"v":25}}]}}'
     )
-    text = _minimax_chat(prompt, max_tokens=4000, temperature=0.1)
+    text = _minimax_chat(prompt, max_tokens=10000, temperature=0.1)
     text = _extract_json(text)
     data = json.loads(text)
     raw = data.get("r") or data.get("results") or []
@@ -154,7 +154,7 @@ def score_tools(tool_ids: list[int]) -> tuple[int, list[str]]:
             _compute_multi_source_bonus(tool)
         )
 
-    SCORE_BATCH = 30
+    SCORE_BATCH = 10
     if MINIMAX_API_KEY:
         for i in range(0, len(tools), SCORE_BATCH):
             batch = tools[i:i + SCORE_BATCH]
