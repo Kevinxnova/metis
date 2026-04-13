@@ -4,6 +4,7 @@ import json
 import re
 import logging
 import urllib.request
+import urllib.error
 import ssl
 import certifi
 from backend.config import MINIMAX_API_KEY
@@ -32,8 +33,8 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
 """
 
 
-def _minimax_chat(prompt: str, max_tokens: int = 196608, temperature: float = 0.7) -> str:
-    """Call MiniMax native API and return response text."""
+def _minimax_chat(prompt: str, max_tokens: int = 10000, temperature: float = 0.7) -> str:
+    """Call MiniMax native API and return response text. Retries once on failure."""
     payload = json.dumps({
         "model": MINIMAX_MODEL,
         "messages": [{"role": "user", "content": prompt}],
@@ -49,12 +50,34 @@ def _minimax_chat(prompt: str, max_tokens: int = 196608, temperature: float = 0.
             "Content-Type": "application/json",
         }
     )
-    resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=300)
-    data = json.loads(resp.read().decode("utf-8"))
-    base_resp = data.get("base_resp", {})
-    if base_resp.get("status_code", 0) != 0:
-        raise RuntimeError(f"MiniMax API error {base_resp.get('status_code')}: {base_resp.get('status_msg')}")
-    return data["choices"][0]["message"]["content"].strip()
+
+    last_err = None
+    for attempt in range(2):
+        if attempt > 0:
+            import time
+            time.sleep(5)
+            logger.info("Retrying MiniMax API call (attempt 2/2)")
+        try:
+            resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=300)
+            data = json.loads(resp.read().decode("utf-8"))
+            base_resp = data.get("base_resp", {})
+            if base_resp.get("status_code", 0) != 0:
+                raise RuntimeError(f"MiniMax API error {base_resp.get('status_code')}: {base_resp.get('status_msg')}")
+            return data["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+            last_err = RuntimeError(
+                f"MiniMax HTTP {e.code}: {body[:500]}"
+            )
+            logger.error(f"MiniMax HTTP {e.code} (attempt {attempt+1}/2): {body[:500]}")
+        except Exception as e:
+            last_err = e
+            logger.error(f"MiniMax call failed (attempt {attempt+1}/2): {e}")
+    raise last_err
 
 
 def _extract_json(text: str) -> str:
@@ -167,7 +190,7 @@ def generate_recommendations() -> list[dict]:
 严格按以下JSON格式返回，不要有其他文字：
 {{"picks": [{{"id": 123, "reason": "中文理由", "use_cases": "中文场景", "reason_en": "English reason", "use_cases_en": "English use cases", "score": 9}}]}}"""
 
-        text = _minimax_chat(prompt, temperature=0.7)
+        text = _minimax_chat(prompt, max_tokens=10000, temperature=0.7)
         text = _extract_json(text)
 
         logger.info(f"MiniMax response (first 200 chars): {text[:200]}")
@@ -229,10 +252,8 @@ def _summarize_batch(tool_list: list[dict]) -> list[dict]:
              "short_summary_zh": item.get("z", item.get("short_summary_zh", ""))} for item in raw]
 
 
-def categorize_and_summarize(tool_ids: list[int]) -> int:
-    """For each new tool, use MiniMax to assign discovery_category and short_summary.
-    Step 1: classify all (large batches). Step 2: summarize by heat order (smaller batches).
-    Returns the number of tools successfully processed."""
+def categorize_tools(tool_ids: list[int]) -> int:
+    """Assign discovery_category to tools via MiniMax. Returns count of categorized tools."""
     if not tool_ids or not MINIMAX_API_KEY:
         return 0
 
@@ -247,7 +268,6 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
 
     tool_list = [{"id": r["id"], "title": r["title"], "description": (r["description"] or "")[:120]} for r in rows]
 
-    # Step 1: classify in batches of 50
     categories: dict[int, str] = {}
     CLASSIFY_BATCH = 50
     for i in range(0, len(tool_list), CLASSIFY_BATCH):
@@ -266,16 +286,34 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
     if not categories:
         return 0
 
-    # Persist categories
     with get_db() as db:
         for tid, cat in categories.items():
             db.execute("UPDATE tools SET discovery_category=? WHERE id=?", (cat, tid))
 
-    # Step 2: summarize in batches of 20
+    logger.info(f"Categorized {len(categories)} tools")
+    return len(categories)
+
+
+def summarize_tools(tool_ids: list[int]) -> int:
+    """Generate short_summary for tools via MiniMax. Returns count of summarized tools."""
+    if not tool_ids or not MINIMAX_API_KEY:
+        return 0
+
+    with get_db() as db:
+        rows = db.execute(
+            f"SELECT id, title, description FROM tools WHERE id IN ({','.join('?' * len(tool_ids))})",
+            tool_ids
+        ).fetchall()
+
+    if not rows:
+        return 0
+
+    tool_list = [{"id": r["id"], "title": r["title"], "description": (r["description"] or "")[:120]} for r in rows]
+
     SUMMARY_BATCH = 20
     summarized = 0
     for i in range(0, len(tool_list), SUMMARY_BATCH):
-        batch = [t for t in tool_list[i:i + SUMMARY_BATCH] if t["id"] in categories]
+        batch = tool_list[i:i + SUMMARY_BATCH]
         if not batch:
             continue
         try:
@@ -291,5 +329,5 @@ def categorize_and_summarize(tool_ids: list[int]) -> int:
         except Exception as e:
             logger.error(f"summarize batch {i}-{i+SUMMARY_BATCH} failed: {e}")
 
-    logger.info(f"Categorized {len(categories)} tools, summarized {summarized}")
+    logger.info(f"Summarized {summarized} tools")
     return summarized

@@ -315,10 +315,20 @@ def get_untranslated_tools(limit: int = 20) -> list[dict]:
 
 
 def get_uncategorized_tool_ids(limit: int = 200) -> list[int]:
-    """Get IDs of tools missing discovery_category or short_summary."""
+    """Get IDs of tools missing discovery_category."""
     with get_db() as db:
         rows = db.execute(
-            "SELECT id FROM tools WHERE short_summary IS NULL ORDER BY first_seen DESC LIMIT ?",
+            "SELECT id FROM tools WHERE discovery_category IS NULL ORDER BY first_seen DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [row[0] for row in rows]
+
+
+def get_unsummarized_tool_ids(limit: int = 200) -> list[int]:
+    """Get IDs of tools that have been categorized but still lack short_summary."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT id FROM tools WHERE short_summary IS NULL AND discovery_category IS NOT NULL ORDER BY first_seen DESC LIMIT ?",
             (limit,)
         ).fetchall()
         return [row[0] for row in rows]

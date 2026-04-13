@@ -174,7 +174,7 @@ def generate_daily_news(target_date: str | None = None, force: bool = False) -> 
         today=today,
     )
 
-    text = _minimax_chat(prompt, temperature=0.7)
+    text = _minimax_chat(prompt, max_tokens=10000, temperature=0.7)
     text = _extract_json(text)
     logger.info(f"MiniMax daily news response (first 200 chars): {text[:200]}")
 

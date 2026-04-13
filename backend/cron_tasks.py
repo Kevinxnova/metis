@@ -9,7 +9,7 @@ from backend.db import init_db, get_db
 from backend.db.queries import (
     log_cron_run, get_daily_news, get_unclassified_tools,
     save_classification, get_untranslated_tools, save_translation,
-    get_daily_digest, get_uncategorized_tool_ids,
+    get_daily_digest, get_uncategorized_tool_ids, get_unsummarized_tool_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,19 +23,6 @@ def task_scrape() -> dict:
     steps = {}
 
     try:
-        # Skip if already scraped today
-        with get_db() as db:
-            tool_count = db.execute(
-                "SELECT COUNT(*) FROM tools WHERE date(first_seen) = ?", (today,)
-            ).fetchone()[0]
-
-        if tool_count > 0:
-            steps["skip_reason"] = f"Already have {tool_count} tools for {today}"
-            log_cron_run(today, "scrape", "skipped", steps=steps,
-                         duration_seconds=time.time() - start,
-                         metadata={"tools_existing": tool_count})
-            return {"status": "skipped", "tools_existing": tool_count}
-
         from backend.scrapers.github import GitHubScraper
         from backend.scrapers.hackernews import HNScraper
         from backend.scrapers.producthunt import ProductHuntScraper
@@ -128,34 +115,47 @@ def task_daily_news() -> dict:
 def task_classify() -> dict:
     """Classify, summarize, and translate all unprocessed tools in batches.
 
-    Three steps, all loop until done or time limit (550s):
-    1. discovery_category + short_summary via MiniMax (batches of 200)
-    2. content_type + domain via classifier (one by one)
-    3. title_zh + description_zh translation (one by one)
+    Four independent steps, each loops until done or time limit (550s):
+    1. discovery_category via MiniMax (batches of 200)
+    2. short_summary via MiniMax (batches of 200, only already-categorized tools)
+    3. content_type + domain via classifier (one by one)
+    4. title_zh + description_zh translation (one by one)
     """
     init_db()
     today = date.today().isoformat()
     start = time.time()
     TIME_LIMIT = 550  # leave buffer for 600s max
     BATCH_SIZE = 200
-    steps = {"categorized": 0, "classified": 0, "translated": 0}
+    steps = {"categorized": 0, "summarized": 0, "classified": 0, "translated": 0}
 
     try:
-        # Step 1: discovery_category + short_summary (most important for frontend)
-        from backend.ai_recommend import categorize_and_summarize
+        # Step 1: discovery_category (independent of short_summary)
+        from backend.ai_recommend import categorize_tools, summarize_tools
 
         while time.time() - start < TIME_LIMIT:
             tool_ids = get_uncategorized_tool_ids(limit=BATCH_SIZE)
             if not tool_ids:
                 break
             try:
-                n = categorize_and_summarize(tool_ids)
+                n = categorize_tools(tool_ids)
                 steps["categorized"] += n
             except Exception as e:
                 steps.setdefault("categorize_errors", []).append(str(e))
                 break  # API error, stop retrying
 
-        # Step 2: content_type + domain classification
+        # Step 2: short_summary (only for already-categorized tools)
+        while time.time() - start < TIME_LIMIT:
+            tool_ids = get_unsummarized_tool_ids(limit=BATCH_SIZE)
+            if not tool_ids:
+                break
+            try:
+                n = summarize_tools(tool_ids)
+                steps["summarized"] += n
+            except Exception as e:
+                steps.setdefault("summarize_errors", []).append(str(e))
+                break  # API error, stop retrying
+
+        # Step 3: content_type + domain classification
         from backend.classifier import classify_tool
 
         while time.time() - start < TIME_LIMIT:
@@ -173,7 +173,7 @@ def task_classify() -> dict:
                     steps.setdefault("classify_errors", []).append(
                         {"id": tool["id"], "error": str(e)})
 
-        # Step 3: Chinese translations
+        # Step 4: Chinese translations
         from backend.translate import translate_tool
 
         while time.time() - start < TIME_LIMIT:
@@ -193,6 +193,7 @@ def task_classify() -> dict:
 
         elapsed = time.time() - start
         steps["remaining_categorize"] = len(get_uncategorized_tool_ids(limit=1)) > 0
+        steps["remaining_summarize"] = len(get_unsummarized_tool_ids(limit=1)) > 0
         steps["remaining_classify"] = len(get_unclassified_tools(limit=1)) > 0
         steps["remaining_translate"] = len(get_untranslated_tools(limit=1)) > 0
 

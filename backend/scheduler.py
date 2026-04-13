@@ -41,20 +41,32 @@ def run_all():
 
     if total_new > 0:
         logger.info(f"New tools found, running categorization...")
-        from backend.ai_recommend import categorize_and_summarize
+        from backend.ai_recommend import categorize_tools, summarize_tools
         from backend.db import get_db
 
-        # 获取今日新增且尚未生��摘要的工具 ID
+        # 获取今日新增且尚未分类的工具 ID
         with get_db() as db:
             rows = db.execute(
-                "SELECT id FROM tools WHERE date(first_seen) = date('now') AND short_summary IS NULL"
+                "SELECT id FROM tools WHERE date(first_seen) = date('now') AND discovery_category IS NULL"
             ).fetchall()
         new_ids = [r[0] for r in rows]
 
         if new_ids:
-            logger.info(f"Categorizing and summarizing {len(new_ids)} new tools...")
-            n = categorize_and_summarize(new_ids)
-            logger.info(f"Categorized {n} tools")
+            logger.info(f"Categorizing {len(new_ids)} new tools...")
+            n_cat = categorize_tools(new_ids)
+            logger.info(f"Categorized {n_cat} tools")
+
+        # 概要：已分类但缺 short_summary 的
+        with get_db() as db:
+            rows = db.execute(
+                "SELECT id FROM tools WHERE date(first_seen) = date('now') AND short_summary IS NULL AND discovery_category IS NOT NULL"
+            ).fetchall()
+        sum_ids = [r[0] for r in rows]
+
+        if sum_ids:
+            logger.info(f"Summarizing {len(sum_ids)} tools...")
+            n_sum = summarize_tools(sum_ids)
+            logger.info(f"Summarized {n_sum} tools")
 
     # Note: daily_news and recommendations are handled by cron.py after run_all()
     return results
