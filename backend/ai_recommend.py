@@ -58,7 +58,7 @@ def _minimax_chat(prompt: str, max_tokens: int = 10000, temperature: float = 0.7
             time.sleep(5)
             logger.info("Retrying MiniMax API call (attempt 2/2)")
         try:
-            resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=300)
+            resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=120)
             data = json.loads(resp.read().decode("utf-8"))
             base_resp = data.get("base_resp", {})
             if base_resp.get("status_code", 0) != 0:
