@@ -3,19 +3,11 @@
 import json
 import re
 import logging
-import urllib.request
-import urllib.error
-import ssl
-import certifi
 from backend.config import MINIMAX_API_KEY
 from backend.db.queries import get_today_tools
 from backend.db import get_db
 
 logger = logging.getLogger(__name__)
-
-_SSL_CTX = ssl.create_default_context(cafile=certifi.where())
-
-MINIMAX_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
 MINIMAX_MODEL = "MiniMax-M2.7-highspeed"
 
 CACHE_TABLE = """
@@ -34,22 +26,10 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
 
 
 def _minimax_chat(prompt: str, max_tokens: int = 10000, temperature: float = 0.7) -> str:
-    """Call MiniMax native API and return response text. Retries once on failure."""
-    payload = json.dumps({
-        "model": MINIMAX_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-    }, ensure_ascii=False).encode("utf-8")
+    """Call MiniMax API via OpenAI SDK and return response text. Retries once on failure."""
+    from openai import OpenAI
 
-    req = urllib.request.Request(
-        MINIMAX_URL,
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json",
-        }
-    )
+    client = OpenAI(api_key=MINIMAX_API_KEY, base_url="https://api.minimax.chat/v1")
 
     last_err = None
     for attempt in range(2):
@@ -58,22 +38,14 @@ def _minimax_chat(prompt: str, max_tokens: int = 10000, temperature: float = 0.7
             time.sleep(5)
             logger.info("Retrying MiniMax API call (attempt 2/2)")
         try:
-            resp = urllib.request.urlopen(req, context=_SSL_CTX, timeout=120)
-            data = json.loads(resp.read().decode("utf-8"))
-            base_resp = data.get("base_resp", {})
-            if base_resp.get("status_code", 0) != 0:
-                raise RuntimeError(f"MiniMax API error {base_resp.get('status_code')}: {base_resp.get('status_msg')}")
-            return data["choices"][0]["message"]["content"].strip()
-        except urllib.error.HTTPError as e:
-            body = ""
-            try:
-                body = e.read().decode("utf-8", errors="replace")
-            except Exception:
-                pass
-            last_err = RuntimeError(
-                f"MiniMax HTTP {e.code}: {body[:500]}"
+            resp = client.chat.completions.create(
+                model=MINIMAX_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                timeout=120,
             )
-            logger.error(f"MiniMax HTTP {e.code} (attempt {attempt+1}/2): {body[:500]}")
+            return resp.choices[0].message.content.strip()
         except Exception as e:
             last_err = e
             logger.error(f"MiniMax call failed (attempt {attempt+1}/2): {e}")
