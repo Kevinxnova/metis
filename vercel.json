@@ -16,6 +16,9 @@
     },
     "api/cron_digest.py": {
       "maxDuration": 300
+    },
+    "api/test_minimax.py": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
@@ -24,6 +27,7 @@
     { "source": "/api/cron/classify", "destination": "/api/cron_classify.py" },
     { "source": "/api/cron/digest", "destination": "/api/cron_digest.py" },
     { "source": "/api/cron", "destination": "/api/cron.py" },
+    { "source": "/api/test-minimax", "destination": "/api/test_minimax.py" },
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
