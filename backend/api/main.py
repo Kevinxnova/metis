@@ -348,5 +348,79 @@ def cron_logs():
     return jsonify(get_cron_logs(limit=limit, task_name=task))
 
 
+# --- MiniMax API Test ---
+
+@app.route("/api/test-minimax")
+def test_minimax():
+    import time, traceback
+    results = {}
+
+    api_key = os.getenv("MINIMAX_API_KEY", "")
+    results["has_key"] = bool(api_key)
+    results["key_prefix"] = api_key[:8] + "..." if api_key else ""
+
+    if not api_key:
+        return jsonify({"error": "MINIMAX_API_KEY not set", **results}), 500
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url="https://api.minimax.chat/v1")
+
+        # Test 1: Simple call
+        t0 = time.time()
+        resp = client.chat.completions.create(
+            model="MiniMax-M2.7-highspeed",
+            messages=[{"role": "user", "content": 'Return JSON: {"status": "ok"}'}],
+            max_tokens=200,
+            temperature=0.1,
+            timeout=30,
+        )
+        t1 = time.time()
+        text = resp.choices[0].message.content.strip()
+        results["test1_simple"] = {
+            "status": "ok",
+            "time_s": round(t1 - t0, 2),
+            "response_len": len(text),
+            "prompt_tokens": resp.usage.prompt_tokens,
+            "completion_tokens": resp.usage.completion_tokens,
+            "response_preview": text[:200],
+        }
+
+        # Test 2: Larger context (simulate daily news)
+        news = [{"id": i, "title": f"AI News {i}", "description": f"Desc {i} " * 20,
+                 "source": "hackernews", "source_url": f"https://example.com/{i}"} for i in range(30)]
+        prompt2 = (
+            f"Pick top 3 headlines. JSON only.\n"
+            f"Items: {json.dumps(news, ensure_ascii=False)[:4000]}\n"
+            f'Return: {{"headlines": [{{"title": "...", "summary": "..."}}]}}'
+        )
+        t0 = time.time()
+        resp = client.chat.completions.create(
+            model="MiniMax-M2.7-highspeed",
+            messages=[{"role": "user", "content": prompt2}],
+            max_tokens=10000,
+            temperature=0.7,
+            timeout=120,
+        )
+        t1 = time.time()
+        text = resp.choices[0].message.content.strip()
+        results["test2_large_context"] = {
+            "status": "ok",
+            "time_s": round(t1 - t0, 2),
+            "response_len": len(text),
+            "prompt_tokens": resp.usage.prompt_tokens,
+            "completion_tokens": resp.usage.completion_tokens,
+        }
+
+        results["overall"] = "all_passed"
+        return jsonify(results)
+
+    except Exception as e:
+        results["error"] = str(e)
+        results["error_type"] = type(e).__name__
+        results["traceback"] = traceback.format_exc()
+        return jsonify(results), 500
+
+
 # Init DB on import
 init_db()
