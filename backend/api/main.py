@@ -66,7 +66,7 @@ def admin_verify():
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "version": "v0.1.1"})
 
 
 @app.route("/api/debug")
