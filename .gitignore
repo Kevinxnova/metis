@@ -14,6 +14,12 @@ dist/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/*.log
+*.db
+*.db-info
+
+# Build artifacts
+frontend/tsconfig.tsbuildinfo
 
 # IDE
 .vscode/
