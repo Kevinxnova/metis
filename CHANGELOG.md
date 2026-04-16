@@ -1,217 +1,97 @@
 # Changelog
 
-All notable changes to Metis are documented here.
+格式参考 [Keep a Changelog](https://keepachangelog.com/)，语义化版本。
+
+---
+
+## [v0.4.0] — 2026-04-13
+
+### Added
+
+| 功能 | 说明 |
+|------|------|
+| RSS 新闻爬虫 | 新增第 4 个数据源 `RSSNewsScraper`，抓取 8 个 AI 新闻 RSS 源（The Verge AI / TechCrunch AI / Ars Technica / MIT Technology Review / VentureBeat AI / Wired AI / OpenAI Blog / Google AI Blog），仅保留最近 48 小时文章，httpx + feedparser 解析 |
+| AI 每日新闻 | `generate_daily_news()` 从当日 AI 相关条目中筛选最多 80 条，调用 MiniMax 生成结构化日报：3-5 条 headlines（含标签：模型发布/融资/开源/产品/政策/研究/工具）、3-6 条 quick_bites、编辑视角分析，中英双语 |
+| DailyNews 前端页面 | `/daily-news` 路由，含 12 月年历概览（可点击已发布日期）、日期导航（跳转到相邻已发布期）、带彩色标签的 headlines、Quick Bites、Editor's Take 渐变卡片 |
+| 暗色/亮色主题 | CSS 变量驱动的全局主题系统，`theme.ts` 管理状态，localStorage 持久化偏好，所有页面和组件适配 |
+| Cron 任务拆分 | 原单一 `/api/cron` 拆分为 4 个独立 Vercel Serverless Function：`cron_scrape`（600s）、`cron_daily_news`（300s）、`cron_classify`（600s）、`cron_digest`（300s），各自独立调度互不阻塞 |
+| Cron 执行日志 | 新增 `cron_logs` 表，记录每次定时任务的 run_date、task_name、status、各步骤详情（JSON）、耗时、错误信息；`GET /api/cron-logs` 端点支持按 task 过滤查询 |
+| 每日新闻二次生成 | 每日 06:00 UTC 再次触发 `/api/cron/daily-news`，用更多后续素材补充日报内容 |
+| `feedparser` 依赖 | `requirements.txt` 新增 `feedparser>=6.0.0` 用于 RSS 解析 |
+
+### Changed
+
+| 变更项 | 变更内容 |
+|--------|----------|
+| Cron 调度时间 | 调整为北京时间白天执行：爬虫 08:00 → 日报 08:30 → 分类 09:00 → 摘要 09:30 → 日报补充 14:00 |
+| 分类流水线优先级 | `task_classify()` 重排优先级：先跑 discovery_category + short_summary（依赖 MiniMax），再跑 content_type/domain（本地规则）+ 翻译 |
+| MiniMax API 超时 | 从 300s 降为 120s，减少长时间挂起风险 |
+| 发现模块布局 | 本周发现从 3 列网格改为全宽堆叠布局 |
+| week_tools 查询 | 修复 N+1 查询，改为单次查询返回 `discovery_category` + `short_summary` 字段 |
+
+### Fixed
+
+| 问题 | 修复方式 |
+|------|----------|
+| MiniMax API 错误静默吞没 | 错误信息现在正确传播到 `cron_logs`，便于排查 |
+| 分类空转死循环 | 无新内容可处理时 `task_classify()` 提前 break，不再空耗 550s 时间预算 |
+| Turso 浮点参数编码 | 修复 `duration_seconds` REAL 类型参数在 Turso 上的编码问题 |
+| MiniMax 400 错误 | 修复批量分类时 prompt 过长导致的请求拒绝 |
+| 爬虫跳过逻辑 | 修复已存在内容的 source 合并逻辑 |
 
 ---
 
 ## [v0.3.0] — 2026-04-05
 
-### 「本周发现」模块重构
+### Added
 
-#### 三模块分区展示
+| 功能 | 说明 |
+|------|------|
+| 三模块分区 | 本周发现按 `discovery_category` 拆分为三区：📰 AI 动态（`news`）/ 🔧 AI 工具（`ai_tool`）/ 🌐 其他（`other`） |
+| AI 智能摘要 | MiniMax 为每条内容生成 `short_summary`（英文 ≤60 字符）和 `short_summary_zh`（中文 ≤20 字符），格式「名称 — 一句话功能描述」，批量处理每批 20 条 |
+| 自动分类触发 | 爬虫发现新内容后自动调用 MiniMax 完成 discovery_category 分类（50 条/批）和摘要生成 |
+| `discovery_category` 列 | `tools` 表新增字段，由 MiniMax 分类，取值 news / ai_tool / other |
+| `short_summary` / `short_summary_zh` 列 | `tools` 表新增字段，AI 生成的一句话摘要 |
 
-将原来的单一发现列表拆分为三个内容分区，按 `discovery_category` 字段区分：
+### Changed
 
-| 分区 | 分类值 | 内容说明 |
-|------|--------|----------|
-| 📰 AI 动态 | `news` | AI 领域的新闻、公告、融资、模型发布等 |
-| 🔧 AI 工具 | `ai_tool` | AI 驱动的产品、工具、库、框架 |
-| 🌐 其他 | `other` | 非 AI 类技术内容、通用软件 |
-
-分类由 MiniMax（`MiniMax-M2.7-highspeed`）完成，每次最多处理 50 条，通过 prompt 指定严格的三分类规则。
-
-#### AI 智能摘要
-
-每条内容自动生成 `short_summary`（英文 ≤60 字符）和 `short_summary_zh`（中文 ≤20 字符），格式为「名称 — 一句话功能描述」。由 MiniMax 分批处理（每批 20 条），仅对已完成分类的内容生成摘要。
-
-#### 自动分类流水线
-
-新增 Vercel Cron 任务 `/api/cron/classify`，每日 UTC 1:00 自动执行，最大运行时间 600 秒。流水线依次执行四个步骤：
-
-| 步骤 | 方法 | 说明 |
-|------|------|------|
-| 1. discovery_category 分类 | MiniMax API，50 条/批 | 将内容分为 news / ai_tool / other |
-| 2. short_summary 摘要 | MiniMax API，20 条/批 | 仅处理已分类的内容 |
-| 3. content_type + domain 分类 | 本地规则引擎（零 API 开销） | 基于正则匹配的关键词评分 |
-| 4. 中文翻译 | Google Translate（deep-translator） | 翻译标题和描述 |
-
-每个步骤循环执行直到全部处理完毕或达到 550 秒时间限制。
-
-#### AI 推荐自动化
-
-AI 推荐从手动触发改为每日自动运行。新增 Vercel Cron 任务 `/api/cron/digest`，每日 UTC 1:30 执行，依次生成：
-1. **Daily Digest**：从当日发现中选出 3 个工具精选 + 2 条热点新闻，附中英文一句话摘要
-2. **AI 推荐 TOP 5**：MiniMax 从当日最多 50 条内容中选出 5 个最有价值的工具，附中英文推荐理由、适用场景和 1-10 评分
+| 变更项 | 变更内容 |
+|--------|----------|
+| AI 推荐运行方式 | 从手动触发改为每日自动运行，爬虫完成后自动生成 |
 
 ---
 
 ## [v0.2.0] — 2026-03
 
-### 社区页、每周视图与 AI 精选
+### Added
 
-#### 社区页（`/community`）
-
-用户反馈与留言入口。通过 `POST /api/messages` 提交留言（支持可选昵称），数据存入 `user_messages` 表，`GET /api/messages` 读取。
-
-#### 本周发现
-
-`GET /api/discover/week` 返回最近 7 天内 `first_seen` 的内容，按热度指标（stars / points / votes）降序排列。
-
-#### 今日精选（Daily Digest）
-
-AI 每日从当日发现中选出 3 个工具推荐 + 2 条热点新闻。调用 MiniMax（`MiniMax-M2.7-highspeed`），通过 OpenAI 兼容接口（`base_url=https://api.minimax.chat/v1`），`temperature=0.7`，返回 JSON 格式的中英文摘要。结果缓存在 `daily_digest` 表中，每日只生成一次。
-
-#### AI 推荐
-
-MiniMax 分析当日工具（最多取 50 条），选出 TOP 5 并输出：
-- 中英文推荐理由（2-3 句）
-- 中英文适用场景（2-3 个）
-- 评分 1-10
-
-结果存入 `ai_recommendations` 表，按日缓存。前端 AI 推荐卡片支持 Carousel 平滑滚动和方向箭头导航。
-
-#### AI 推荐快速预览
-
-推荐列表上方展示「名称 — 一行理由」速览条，便于快速浏览。
-
----
-
-## [v0.1.0] — 2026-02 ～ 2026-03
-
-### 基础功能上线
-
-#### 数据抓取
-
-四个数据源，每日 UTC 0:00 由 Vercel Cron 触发 `/api/cron/scrape`（最大运行时间 600 秒），依次执行：
-
-| 数据源 | 方法 | 抓取策略 | 关键指标 |
-|--------|------|----------|----------|
-| **GitHub Trending** | 解析 `github.com/trending/{lang}` HTML 页面，使用 httpx + 正则提取仓库信息；再通过 GitHub REST API (`/repos/{owner}/{repo}`) 获取精确 star 数 | 遍历 6 个语言维度：Python、TypeScript、JavaScript、Rust、Go、全部语言；同一仓库跨语言去重 | `stars`（总数）、`stars_today`（当日增量） |
-| **Hacker News** | 调用 Firebase API (`hacker-news.firebaseio.com/v0`)，抓取 `showstories` + `topstories` 两个端点 | 每个端点取前 50 条，逐条请求详情；过滤掉 `points < 10` 的低热度内容；Show HN 帖子自动清理标题前缀 | `points`、`comments`、`is_show_hn` |
-| **Product Hunt** | 调用 GraphQL API (`api.producthunt.com/v2/api/graphql`)，需要 Bearer Token 认证 | 按投票数排序取前 30 个产品，提取 tagline、topics、votes 等 | `votes`、`comments`、`topics` |
-| **RSS 新闻** | 使用 httpx 抓取 + feedparser 解析 RSS/XML，自定义 User-Agent（`MetisBot/1.0`） | 仅保留最近 48 小时内的文章；自动去除 HTML 标签和解码实体 | `rss_label`、`published` |
-
-RSS 新闻源覆盖 8 个频道：
-
-| 来源 | Feed URL |
-|------|----------|
-| The Verge AI | `theverge.com/rss/ai-artificial-intelligence/index.xml` |
-| TechCrunch AI | `techcrunch.com/category/artificial-intelligence/feed/` |
-| Ars Technica | `feeds.arstechnica.com/arstechnica/technology-lab` |
-| MIT Technology Review | `technologyreview.com/feed/` |
-| VentureBeat AI | `venturebeat.com/category/ai/feed/` |
-| Wired AI | `wired.com/feed/tag/ai/latest/rss` |
-| OpenAI Blog | `openai.com/blog/rss.xml` |
-| Google AI Blog | `blog.google/technology/ai/rss/` |
-
-所有爬虫继承自 `BaseScraper`，共享统一流水线：**fetch → normalize → dedup → classify → insert**。每次运行结果记录到 `scrape_runs` 表（source、status、found/new/deduped 计数、耗时、错误信息）。
-
-#### URL 去重
-
-基于 `dedup_key` 的两级去重策略：
-
-| 优先级 | 条件 | 生成规则 | 示例 |
-|--------|------|----------|------|
-| 1 | GitHub URL | `github:{owner}/{repo}`（小写） | `github:langchain-ai/langchain` |
-| 2 | 其他 URL | `url:{normalized_url}`，去除 query/fragment/www/尾部斜杠 | `url:https://example.com/tool` |
-
-同一 `dedup_key` 的重复条目不会重复插入，但会合并 `sources` 字段记录多源发现。
-
-#### 自动分类（规则引擎）
-
-零 API 开销的本地分类器，基于正则关键词匹配评分，两个正交维度：
-
-| 维度 | 可选值 | 方法 |
-|------|--------|------|
-| `content_type` | tool / library / model / api / article / other | 对标题+描述+URL 分别匹配 5 组关键词模式，取最高分；GitHub URL 默认偏向 tool，HN text-only 偏向 article |
-| `domain` | ai / web / devops / data / security / design / general | 同上，6 组领域关键词模式独立评分 |
-
-#### 双语支持
-
-- **内容翻译**：使用 `deep-translator` 调用 Google Translate，将英文标题和描述翻译为中文（`title_zh`、`description_zh`）
-- **Take 反向翻译**：编辑中文 take 后自动调用 `GoogleTranslator(zh-CN → en)` 生成英文版
-- **前端 i18n**：React 端支持中/英文切换，通过 `localStorage` 持久化语言偏好
-
-#### AI 每日新闻
-
-每日 UTC 0:30 和 6:00 由 Vercel Cron 触发 `/api/cron/daily-news`（最大运行时间 300 秒）。从当日内容中筛选 AI 相关条目（`domain='ai'` 或 `source='rss_news'` 或 `discovery_category='news'` 或 `content_type IN ('model','article')`），按热度指标降序取前 80 条，发送给 MiniMax 生成结构化日报：
-
-| 字段 | 说明 |
+| 功能 | 说明 |
 |------|------|
-| `headlines` | 3-5 条最重要新闻，含标题/摘要（中英）、来源、链接、标签（模型发布/融资/开源/产品/政策/研究/工具） |
-| `quick_bites` | 3-6 条一句话快讯（中英） |
-| `editor_take` | 编辑视角的趋势分析（中英），3-5 句有观点的洞察 |
-
-结果按日缓存在 `ai_daily_news` 表中。每日 6:00 再次运行以补充更多素材。
-
-#### Discover 页
-
-`/discover` 为主发现页面，包含四大板块：
-
-| 板块 | API 端点 | 数据来源 |
-|------|----------|----------|
-| 优选榜 | `GET /api/discover/featured` | `is_featured=1` 的手动精选 |
-| Metis 推荐 | `GET /api/discover/metis-picks` | `is_metis_pick=1` 的编辑推荐 |
-| AI 推荐 | `GET /api/discover/ai-picks` | `ai_recommendations` 表，MiniMax 生成 |
-| 今日发现 | `GET /api/discover/today` | 当日所有 `first_seen` 的内容 |
-
-另有 `GET /api/discover/week`（本周发现）、`GET /api/discover/random`（随机推荐）、`GET /api/discover/digest`（每日精选）。
-
-#### 管理后台
-
-`/admin` 路由，通过 `ADMIN_PASSWORD` 环境变量控制访问（`POST /api/admin/verify` 校验密码）。功能：
-
-- **审核工具**：支持 approve / skip / defer / archive / unapprove 五种状态流转，所有操作记录到 `curation_log` 表
-- **设置 featured**：`POST /api/tools/{id}/featured` 标记/取消优选
-- **设置 metis-pick**：`POST /api/tools/{id}/metis-pick` 标记/取消编辑推荐
-- **编辑 Take**：在审核时附加编辑点评，自动翻译为英文
-- **合并工具**：`POST /api/tools/{id}/merge` 将重复条目合并到目标工具
-
-#### Newsletter 发送
-
-- **期刊管理**：`issues` 表记录期刊（draft → sent），创建期刊时自动关联所有 approved 状态的工具
-- **邮件模板**：HTML 模板，`max-width: 600px`，Apple 系统字体，展示每个工具的标题链接 + take 点评
-- **发送渠道**：通过 Buttondown API（`api.buttondown.com/v1/emails`）发送，Token 认证，30 秒超时
-- **防重复**：已发送的期刊不允许重复发送（HTTP 409）
-
-#### 部署架构
-
-| 组件 | 技术 | 说明 |
-|------|------|------|
-| 前端 | React + TypeScript + Vite | 部署在 Vercel，`frontend/dist` 为输出目录 |
-| 后端 API | Flask（Python） | 通过 Vercel Serverless Functions 运行，`/api/*` 路由 rewrites 到 `api/index.py` |
-| 数据库 | SQLite（本地）/ Turso（云端） | WAL 模式，支持并发读写；Turso 作为生产环境云数据库 |
-| 定时任务 | Vercel Cron | 5 个定时任务，覆盖抓取→新闻→分类→摘要全流程 |
-| 内网穿透 | Cloudflare Tunnel | Mac mini 作为本地后端服务器 |
-| AI 模型 | MiniMax (`MiniMax-M2.7-highspeed`) | 用于分类、摘要、推荐、每日新闻生成 |
-| 邮件 | Buttondown API | Newsletter 分发渠道 |
-| 翻译 | Google Translate（deep-translator） | 中英文双向翻译 |
-
-#### Cron 调度总览
-
-| Cron | UTC 时间 | 端点 | 最大时长 | 功能 |
-|------|----------|------|----------|------|
-| 每日爬虫 | 0:00 | `/api/cron/scrape` | 600s | 运行四个爬虫 |
-| 每日新闻（首次） | 0:30 | `/api/cron/daily-news` | 300s | 生成 AI 日报 |
-| 分类流水线 | 1:00 | `/api/cron/classify` | 600s | 分类 + 摘要 + 翻译 |
-| 摘要推荐 | 1:30 | `/api/cron/digest` | 300s | Daily Digest + AI TOP 5 |
-| 每日新闻（补充） | 6:00 | `/api/cron/daily-news` | 300s | 补充更多素材后再次生成 |
-
-#### 爬虫健康监控
-
-- `scrape_runs` 表：记录每次爬虫运行的 source、status（success/error/timeout）、found/new/deduped 计数、耗时（ms）、错误信息
-- `cron_logs` 表：记录每个 Cron 任务的执行日期、状态、各步骤详情、耗时
-- `GET /api/health/scrapes`：返回最近一次各源爬虫运行状态
-- `GET /api/cron-logs`：查询 Cron 任务执行历史，支持按 task 过滤
-
-#### 暗色模式
-
-前端支持 light / dark 主题切换，通过 CSS 变量实现，用户偏好持久化到 `localStorage`。
-
-#### Landing Page
-
-品牌主页（`/` 路由），介绍 Metis 的产品定位与功能：AI 工具发现 Newsletter，自动抓取 + 人工策展 + 邮件分发。
+| 社区页 | `/community` 路由，用户留言入口，支持可选昵称，数据存入 `user_messages` 表 |
+| 本周发现 | `GET /api/discover/week` 返回最近 7 天内容，按热度指标降序排列 |
+| Daily Digest | MiniMax 每日从发现中选出 3 个工具推荐 + 2 条热点新闻，附中英文一句话摘要，结果缓存在 `daily_digest` 表 |
+| AI 推荐 TOP 5 | MiniMax 分析当日最多 50 条内容，选出 TOP 5 并输出中英文推荐理由（2-3 句）、适用场景（2-3 个）、评分 1-10，结果存入 `ai_recommendations` 表 |
+| Carousel 组件 | 优选榜和 AI 推荐支持平滑滚动 + 方向箭头导航 |
+| AI 推荐速览 | 推荐列表上方展示「名称 — 一行理由」快速预览条 |
 
 ---
 
-> 格式参考 [Keep a Changelog](https://keepachangelog.com/)
+## [v0.1.0] — 2026-02 ~ 2026-03
+
+### Added
+
+| 功能 | 说明 |
+|------|------|
+| GitHub Trending 爬虫 | 解析 `github.com/trending/{lang}` 页面（Python / TypeScript / JavaScript / Rust / Go / 全部），httpx + 正则提取，GitHub REST API 获取精确 star 数 |
+| Hacker News 爬虫 | Firebase API 抓取 `showstories` + `topstories`，每端点前 50 条，过滤 `points < 10`，Show HN 自动清理标题前缀 |
+| Product Hunt 爬虫 | GraphQL API 按投票数取前 30 个产品，Bearer Token 认证 |
+| URL 去重 | 两级 `dedup_key` 策略：GitHub URL → `github:{owner}/{repo}`，其他 → `url:{normalized}`（去 query/fragment/www/尾部斜杠） |
+| 规则分类器 | 零 API 开销，正则关键词匹配评分：`content_type`（tool/library/model/api/article/other）× `domain`（ai/web/devops/data/security/design/general） |
+| 中英翻译 | `deep-translator` 调用 Google Translate，标题+描述 → 中文；Take → 英文反向翻译 |
+| Discover 页 | `/discover` 四板块：优选榜（`is_featured`）、Metis 推荐（`is_metis_pick`）、AI 推荐（`ai_recommendations`）、今日发现 |
+| Admin 后台 | 密码保护，工具审核（approve/skip/defer/archive/unapprove）、设置 featured/metis-pick、编辑 Take、合并重复项，操作记录到 `curation_log` 表 |
+| Newsletter 发送 | `issues` 表管理期刊（draft → sent），HTML 模板 + Buttondown API 分发，防重复发送 |
+| Landing page | `/` 品牌主页，介绍 Metis 定位 |
+| 中英文切换 | 前端 i18n，localStorage 持久化语言偏好 |
+| 爬虫健康监控 | `scrape_runs` 表记录每次运行的 source、status、found/new/deduped 计数、耗时 |
+| 部署架构 | Vercel（前端 + Serverless Functions）+ SQLite/Turso + Cloudflare Tunnel（Mac mini）+ MiniMax + Buttondown + Google Translate |
