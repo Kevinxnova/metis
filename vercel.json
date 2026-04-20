@@ -3,18 +3,18 @@
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/cron.py": {
-      "maxDuration": 600,
+      "maxDuration": 300,
       "regions": ["hkg1"]
     },
     "api/cron_scrape.py": {
-      "maxDuration": 600
+      "maxDuration": 300
     },
     "api/cron_daily_news.py": {
       "maxDuration": 300,
       "regions": ["hkg1"]
     },
     "api/cron_classify.py": {
-      "maxDuration": 600,
+      "maxDuration": 300,
       "regions": ["hkg1"]
     },
     "api/cron_digest.py": {
