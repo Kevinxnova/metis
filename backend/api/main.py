@@ -1,7 +1,7 @@
 """Flask application entry point."""
 
 import os
-import json
+from functools import wraps
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -22,22 +22,27 @@ from backend.db.queries import (
 from backend.translate import translate_tool
 from backend.email.sender import compose_email, send_via_buttondown
 from backend.ai_recommend import generate_recommendations, get_cached_recommendations
+from backend.security import secret_is_configured, secret_matches
 
 app = Flask(__name__)
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", FRONTEND_URL).split(",")
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", FRONTEND_URL).split(",")
+    if origin.strip()
+]
 
 
 @app.after_request
 def cors(response):
     origin = request.headers.get("Origin", "")
-    if origin in ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS:
+    if origin and origin in ALLOWED_ORIGINS:
         response.headers["Access-Control-Allow-Origin"] = origin
-    else:
-        response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGINS[0]
+        response.headers["Vary"] = "Origin"
+    elif "*" in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Password"
     return response
 
 
@@ -47,17 +52,27 @@ def handle_preflight():
         return "", 204
 
 
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
-
-
 # --- Auth ---
+
+def admin_required(view):
+    """Require the configured admin password in the X-Admin-Password header."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not secret_is_configured("ADMIN_PASSWORD"):
+            return jsonify({"detail": "Admin access is not configured"}), 503
+        if not secret_matches(request.headers.get("X-Admin-Password"), "ADMIN_PASSWORD"):
+            return jsonify({"detail": "Unauthorized"}), 401
+        return view(*args, **kwargs)
+
+    return wrapped
+
 
 @app.route("/api/admin/verify", methods=["POST"])
 def admin_verify():
     data = request.get_json() or {}
-    if not ADMIN_PASSWORD:
-        return jsonify({"ok": True})  # No password set = open
-    if data.get("password") == ADMIN_PASSWORD:
+    if not secret_is_configured("ADMIN_PASSWORD"):
+        return jsonify({"ok": False, "detail": "Admin access is not configured"}), 503
+    if secret_matches(data.get("password"), "ADMIN_PASSWORD"):
         return jsonify({"ok": True})
     return jsonify({"ok": False, "detail": "Wrong password"}), 401
 
@@ -66,34 +81,11 @@ def admin_verify():
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "version": "v0.1.1"})
-
-
-@app.route("/api/debug")
-def debug():
-    """Temporary debug endpoint to diagnose Turso connection."""
-    import traceback
-    info = {
-        "turso_url_set": bool(os.getenv("TURSO_DATABASE_URL")),
-        "turso_url_prefix": (os.getenv("TURSO_DATABASE_URL") or "")[:30],
-        "turso_token_set": bool(os.getenv("TURSO_AUTH_TOKEN")),
-        "turso_token_len": len(os.getenv("TURSO_AUTH_TOKEN") or ""),
-    }
-    try:
-        from backend.db import get_db, _use_turso
-        info["use_turso"] = _use_turso()
-        with get_db() as db:
-            count = db.execute("SELECT COUNT(*) as c FROM tools").fetchone()
-            info["tools_count"] = count["c"]
-            info["db_ok"] = True
-    except Exception as e:
-        info["db_ok"] = False
-        info["error"] = str(e)
-        info["traceback"] = traceback.format_exc()
-    return jsonify(info)
+    return jsonify({"status": "ok", "version": "v0.3.0"})
 
 
 @app.route("/api/health/scrapes")
+@admin_required
 def scrape_status():
     return jsonify({"scrapes": get_latest_scrape_runs()})
 
@@ -101,6 +93,7 @@ def scrape_status():
 # --- Tools ---
 
 @app.route("/api/tools")
+@admin_required
 def list_tools():
     return jsonify(get_tools(
         status=request.args.get("status"),
@@ -112,11 +105,13 @@ def list_tools():
 
 
 @app.route("/api/tools/categories")
+@admin_required
 def categories():
     return jsonify(get_category_counts())
 
 
 @app.route("/api/tools/<int:tool_id>")
+@admin_required
 def get_tool_detail(tool_id):
     tool = get_tool(tool_id)
     if not tool:
@@ -125,6 +120,7 @@ def get_tool_detail(tool_id):
 
 
 @app.route("/api/tools/<int:tool_id>", methods=["PATCH"])
+@admin_required
 def update_tool(tool_id):
     tool = get_tool(tool_id)
     if not tool:
@@ -156,6 +152,7 @@ def update_tool(tool_id):
 
 
 @app.route("/api/tools/<int:tool_id>/merge", methods=["POST"])
+@admin_required
 def merge_tool(tool_id):
     data = request.get_json()
     merge_into = data.get("merge_into_id")
@@ -168,6 +165,7 @@ def merge_tool(tool_id):
 
 
 @app.route("/api/tools/<int:tool_id>/featured", methods=["POST"])
+@admin_required
 def toggle_featured(tool_id):
     tool = get_tool(tool_id)
     if not tool:
@@ -178,6 +176,7 @@ def toggle_featured(tool_id):
 
 
 @app.route("/api/tools/<int:tool_id>/metis-pick", methods=["POST"])
+@admin_required
 def toggle_metis_pick(tool_id):
     tool = get_tool(tool_id)
     if not tool:
@@ -190,11 +189,13 @@ def toggle_metis_pick(tool_id):
 # --- Issues ---
 
 @app.route("/api/issues")
+@admin_required
 def list_issues():
     return jsonify(get_issues())
 
 
 @app.route("/api/issues/<int:issue_number>")
+@admin_required
 def get_issue_detail(issue_number):
     issue = get_issue(issue_number)
     if not issue:
@@ -203,6 +204,7 @@ def get_issue_detail(issue_number):
 
 
 @app.route("/api/issues", methods=["POST"])
+@admin_required
 def new_issue():
     data = request.get_json() or {}
     approved = get_tools(status="approved")
@@ -215,6 +217,7 @@ def new_issue():
 # --- Send ---
 
 @app.route("/api/send/<int:issue_number>", methods=["POST"])
+@admin_required
 def send_issue(issue_number):
     issue = get_issue(issue_number)
     if not issue:
@@ -235,6 +238,7 @@ def send_issue(issue_number):
 # --- Translate ---
 
 @app.route("/api/translate/batch", methods=["POST"])
+@admin_required
 def translate_batch():
     limit = int(request.args.get("limit", 20))
     untranslated = get_untranslated_tools(limit=limit)
@@ -264,6 +268,7 @@ def ai_picks():
 
 
 @app.route("/api/discover/ai-picks/generate", methods=["POST"])
+@admin_required
 def generate_ai_picks():
     results = generate_recommendations()
     return jsonify({"count": len(results), "picks": results})
@@ -300,7 +305,11 @@ def post_message():
     content = (data.get("content") or "").strip()
     if not content:
         return jsonify({"detail": "Content required"}), 400
+    if len(content) > 2000:
+        return jsonify({"detail": "Content must be 2000 characters or fewer"}), 400
     nickname = (data.get("nickname") or "").strip()
+    if len(nickname) > 80:
+        return jsonify({"detail": "Nickname must be 80 characters or fewer"}), 400
     msg_id = save_user_message(content, nickname)
     return jsonify({"ok": True, "id": msg_id})
 
@@ -329,6 +338,7 @@ def daily_news_list():
 
 
 @app.route("/api/daily-news/generate", methods=["POST"])
+@admin_required
 def generate_daily_news_route():
     from backend.daily_news import generate_daily_news
     force = request.args.get("force", "false").lower() == "true"
@@ -342,85 +352,12 @@ def generate_daily_news_route():
 # --- Cron Logs ---
 
 @app.route("/api/cron-logs")
+@admin_required
 def cron_logs():
     from backend.db.queries import get_cron_logs
     task = request.args.get("task")
     limit = int(request.args.get("limit", 50))
     return jsonify(get_cron_logs(limit=limit, task_name=task))
-
-
-# --- MiniMax API Test ---
-
-@app.route("/api/test-minimax")
-def test_minimax():
-    import time, traceback
-    results = {}
-
-    api_key = os.getenv("MINIMAX_API_KEY", "")
-    results["has_key"] = bool(api_key)
-    results["key_prefix"] = api_key[:8] + "..." if api_key else ""
-
-    if not api_key:
-        return jsonify({"error": "MINIMAX_API_KEY not set", **results}), 500
-
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key, base_url="https://api.minimax.chat/v1")
-
-        # Test 1: Simple call
-        t0 = time.time()
-        resp = client.chat.completions.create(
-            model="MiniMax-M2.7-highspeed",
-            messages=[{"role": "user", "content": 'Return JSON: {"status": "ok"}'}],
-            max_tokens=200,
-            temperature=0.1,
-            timeout=30,
-        )
-        t1 = time.time()
-        text = resp.choices[0].message.content.strip()
-        results["test1_simple"] = {
-            "status": "ok",
-            "time_s": round(t1 - t0, 2),
-            "response_len": len(text),
-            "prompt_tokens": resp.usage.prompt_tokens,
-            "completion_tokens": resp.usage.completion_tokens,
-            "response_preview": text[:200],
-        }
-
-        # Test 2: Larger context (simulate daily news)
-        news = [{"id": i, "title": f"AI News {i}", "description": f"Desc {i} " * 20,
-                 "source": "hackernews", "source_url": f"https://example.com/{i}"} for i in range(30)]
-        prompt2 = (
-            f"Pick top 3 headlines. JSON only.\n"
-            f"Items: {json.dumps(news, ensure_ascii=False)[:4000]}\n"
-            f'Return: {{"headlines": [{{"title": "...", "summary": "..."}}]}}'
-        )
-        t0 = time.time()
-        resp = client.chat.completions.create(
-            model="MiniMax-M2.7-highspeed",
-            messages=[{"role": "user", "content": prompt2}],
-            max_tokens=10000,
-            temperature=0.7,
-            timeout=120,
-        )
-        t1 = time.time()
-        text = resp.choices[0].message.content.strip()
-        results["test2_large_context"] = {
-            "status": "ok",
-            "time_s": round(t1 - t0, 2),
-            "response_len": len(text),
-            "prompt_tokens": resp.usage.prompt_tokens,
-            "completion_tokens": resp.usage.completion_tokens,
-        }
-
-        results["overall"] = "all_passed"
-        return jsonify(results)
-
-    except Exception as e:
-        results["error"] = str(e)
-        results["error_type"] = type(e).__name__
-        results["traceback"] = traceback.format_exc()
-        return jsonify(results), 500
 
 
 # Init DB on import

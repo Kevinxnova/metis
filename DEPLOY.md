@@ -1,93 +1,103 @@
-# Metis 部署指南
+# Deploying Metis
 
-架构: Vercel (前端) + Mac mini (后端 + 数据库) + Cloudflare Tunnel
+Metis can run as one Vercel project with a Turso database. It can also be
+self-hosted with local SQLite.
 
-## Mac mini 后端部署
+## Vercel + Turso
 
-### 1. 克隆仓库
+### 1. Create a Turso database
+
+Create a database in Turso and copy its database URL and authentication token.
+Metis initializes missing tables on startup.
+
+### 2. Import the GitHub repository
+
+Import `Kevinxnova/metis` into Vercel and keep the repository root as the
+project root. The checked-in `vercel.json` builds the frontend and maps the
+Python API functions.
+
+### 3. Configure environment variables
+
+Set these values for Production and Preview as appropriate:
+
+```text
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+ADMIN_PASSWORD=<long-random-value>
+CRON_SECRET=<different-long-random-value>
+MINIMAX_API_KEY=...
+ALLOWED_ORIGINS=https://your-project.vercel.app
+```
+
+Optional features use:
+
+```text
+PRODUCTHUNT_API_TOKEN=...
+BUTTONDOWN_API_KEY=...
+TRANSLATION_API_URL=https://your-translator.example/translate
+TRANSLATION_API_KEY=...
+```
+
+If the frontend and API are deployed together, leave `VITE_API_URL` unset. If
+they use different origins, set it to the API origin without a trailing
+`/api`, then add the frontend origin to `ALLOWED_ORIGINS`.
+
+Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` to cron
+requests when `CRON_SECRET` is configured. Metis fails closed when the value is
+missing.
+
+### 4. Deploy and verify
+
+After deployment:
+
 ```bash
-git clone https://github.com/Kevinxnova/metis.git
-cd metis
+curl https://your-project.vercel.app/api/health
 ```
 
-### 2. 一键设置
+The response should report `status: ok`. Then open `/admin` and verify that
+the configured admin password works.
+
+Review your Vercel plan's current cron frequency and function-duration limits.
+The included schedules are a starting point and may need to be reduced for your
+plan.
+
+## Self-hosting
+
+Local SQLite is used whenever `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are
+not set.
+
 ```bash
-chmod +x scripts/setup-mac.sh
-./scripts/setup-mac.sh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Configure at least ADMIN_PASSWORD and CRON_SECRET.
+
+./scripts/start-backend.sh
 ```
 
-### 3. 配置 .env
+The server binds to `API_HOST` and `API_PORT`, which default to
+`127.0.0.1:8000`. Put a TLS-terminating reverse proxy in front of it before
+making it reachable from the internet.
+
+Run the collector manually with:
+
 ```bash
-nano .env
-# 填入 MINIMAX_API_KEY 等
+source .venv/bin/activate
+python -m backend.scheduler
 ```
 
-### 4. 启动服务
-```bash
-# 启动后端 (开机自启)
-launchctl load ~/Library/LaunchAgents/com.metis.backend.plist
+The macOS helper in `scripts/setup-mac.sh` can create launchd services for the
+API and collector. Read the script before running it because it writes service
+definitions under `~/Library/LaunchAgents`.
 
-# 启动定时爬虫 (每12小时)
-launchctl load ~/Library/LaunchAgents/com.metis.scraper.plist
+## Secret handling
 
-# 验证
-curl http://localhost:8000/api/health
-```
-
-### 5. Cloudflare Tunnel (暴露 API 到公网)
-```bash
-brew install cloudflared
-cloudflared tunnel login
-cloudflared tunnel create metis
-cloudflared tunnel route dns metis api.你的域名.com
-
-# 启动 tunnel
-cloudflared tunnel --url http://localhost:8000 run metis
-```
-
-记下 tunnel 分配的 URL (类似 https://xxx.trycloudflare.com)
-或者绑定自定义域名 api.你的域名.com
-
-### 管理命令
-```bash
-# 停止后端
-launchctl unload ~/Library/LaunchAgents/com.metis.backend.plist
-
-# 查看日志
-tail -f data/backend.log
-tail -f data/scrape.log
-
-# 手动触发爬虫
-source .venv/bin/activate && python -m backend.scheduler
-
-# 更新代码
-git pull && source .venv/bin/activate && pip install -r backend/requirements.txt
-launchctl unload ~/Library/LaunchAgents/com.metis.backend.plist
-launchctl load ~/Library/LaunchAgents/com.metis.backend.plist
-```
-
-## Vercel 前端部署
-
-### 1. 导入项目
-- 打开 https://vercel.com/new
-- 选择 GitHub 仓库 Kevinxnova/metis
-- Framework Preset: Vite
-- Root Directory: `frontend`
-- Build Command: `npm run build`
-- Output Directory: `dist`
-
-### 2. 设置环境变量
-在 Vercel 项目 Settings > Environment Variables 添加:
-```
-VITE_API_URL = https://api.你的域名.com (或 Cloudflare Tunnel URL)
-```
-
-### 3. 部署
-Vercel 会自动部署。每次 push 到 main 自动更新。
-
-### 4. 更新后端 CORS
-在 Mac mini 的 .env 中添加 Vercel 域名:
-```
-ALLOWED_ORIGINS=https://metis-xxx.vercel.app,http://localhost:5173
-```
-重启后端生效。
+- Do not commit `.env`, database files, logs, or Vercel metadata.
+- Use different values for the admin password and cron secret.
+- Rotate a credential immediately if it appears in Git history or application
+  logs.
+- Do not expose the admin API over plain HTTP.
+- Keep Preview environment credentials separate from Production.
+- Translation text leaves Metis only when `TRANSLATION_API_URL` is explicitly
+  configured; a self-hosted endpoint is recommended for sensitive content.

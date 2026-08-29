@@ -15,17 +15,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, jsonify, request
+from backend.security import bearer_matches, secret_is_configured
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
-CRON_SECRET = os.getenv("CRON_SECRET", "")
-MAX_DURATION = 540
+MAX_DURATION = 270
 
 
 @app.route("/api/cron", methods=["GET"])
 def cron():
-    if CRON_SECRET and request.headers.get("Authorization") != f"Bearer {CRON_SECRET}":
+    if not secret_is_configured("CRON_SECRET"):
+        return jsonify({"error": "Cron access is not configured"}), 503
+    if not bearer_matches(request.headers.get("Authorization")):
         return jsonify({"error": "Unauthorized"}), 401
 
     start = time.time()

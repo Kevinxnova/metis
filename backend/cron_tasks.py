@@ -127,7 +127,7 @@ def task_classify() -> dict:
     init_db()
     today = date.today().isoformat()
     start = time.time()
-    TIME_LIMIT = 550  # leave buffer for 600s max
+    TIME_LIMIT = 270  # leave buffer for the 300s Vercel function limit
     BATCH_SIZE = 200
     steps = {"categorized": 0, "summarized": 0, "classified": 0, "translated": 0}
 

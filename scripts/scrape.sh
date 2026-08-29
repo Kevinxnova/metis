@@ -1,6 +1,17 @@
 #!/bin/bash
 # Metis scraper - run via cron
-cd metis
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_DIR"
+
 source .venv/bin/activate
-export $(grep -v '^#' .env | xargs)
-python -m backend.scheduler >> metis/data/scrape.log 2>&1
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
+
+mkdir -p data
+python -m backend.scheduler >> data/scrape.log 2>&1

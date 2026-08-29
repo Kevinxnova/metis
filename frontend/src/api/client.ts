@@ -1,9 +1,16 @@
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit, admin = false): Promise<T> {
+  const headers = new Headers(options?.headers)
+  headers.set('Content-Type', 'application/json')
+  if (admin) {
+    const password = sessionStorage.getItem('metis-admin-password')
+    if (password) headers.set('X-Admin-Password', password)
+  }
+
   const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   })
   if (!resp.ok) {
     const error = await resp.json().catch(() => ({ detail: resp.statusText }))
@@ -69,45 +76,45 @@ export const api = {
     if (filters?.content_type) params.set('content_type', filters.content_type)
     if (filters?.domain) params.set('domain', filters.domain)
     const qs = params.toString()
-    return request<Tool[]>(`/tools${qs ? `?${qs}` : ''}`)
+    return request<Tool[]>(`/tools${qs ? `?${qs}` : ''}`, undefined, true)
   },
 
-  getCategories: () => request<CategoryCounts>('/tools/categories'),
+  getCategories: () => request<CategoryCounts>('/tools/categories', undefined, true),
 
   updateTool: (id: number, action: string, takeText?: string) =>
     request<{ ok: boolean }>(`/tools/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status: action, take_text: takeText }),
-    }),
+    }, true),
 
   mergeTool: (id: number, mergeIntoId: number) =>
     request<{ ok: boolean }>(`/tools/${id}/merge`, {
       method: 'POST',
       body: JSON.stringify({ merge_into_id: mergeIntoId }),
-    }),
+    }, true),
 
   // Issues
-  getIssues: () => request<Issue[]>('/issues'),
-  getIssue: (num: number) => request<Issue & { tools: Tool[] }>(`/issues/${num}`),
+  getIssues: () => request<Issue[]>('/issues', undefined, true),
+  getIssue: (num: number) => request<Issue & { tools: Tool[] }>(`/issues/${num}`, undefined, true),
   createIssue: (title?: string) =>
     request<{ ok: boolean; issue_number: number }>('/issues', {
       method: 'POST',
       body: JSON.stringify({ title }),
-    }),
+    }, true),
 
   // Send
   sendIssue: (num: number) =>
-    request<{ ok: boolean }>(`/send/${num}`, { method: 'POST' }),
+    request<{ ok: boolean }>(`/send/${num}`, { method: 'POST' }, true),
 
   // Health
   getScrapeStatus: () =>
-    request<{ scrapes: ScrapeRun[] }>('/health/scrapes'),
+    request<{ scrapes: ScrapeRun[] }>('/health/scrapes', undefined, true),
 
   // Translate
   translateBatch: (limit = 20) =>
     request<{ translated: number; remaining: number }>(`/translate/batch?limit=${limit}`, {
       method: 'POST',
-    }),
+    }, true),
 
   // Admin auth
   verifyAdmin: (password: string) =>
@@ -118,17 +125,17 @@ export const api = {
 
   // Admin actions
   setFeatured: (id: number, on: boolean) =>
-    request<{ ok: boolean }>(`/tools/${id}/featured?on=${on}`, { method: 'POST' }),
+    request<{ ok: boolean }>(`/tools/${id}/featured?on=${on}`, { method: 'POST' }, true),
 
   setMetisPick: (id: number, on: boolean) =>
-    request<{ ok: boolean }>(`/tools/${id}/metis-pick?on=${on}`, { method: 'POST' }),
+    request<{ ok: boolean }>(`/tools/${id}/metis-pick?on=${on}`, { method: 'POST' }, true),
 
   // Discover page
   getFeatured: () => request<Tool[]>('/discover/featured'),
   getMetisPicks: () => request<Tool[]>('/discover/metis-picks'),
   getAiPicks: () => request<AiPick[]>('/discover/ai-picks'),
   generateAiPicks: () =>
-    request<{ count: number; picks: AiPick[] }>('/discover/ai-picks/generate', { method: 'POST' }),
+    request<{ count: number; picks: AiPick[] }>('/discover/ai-picks/generate', { method: 'POST' }, true),
   getTodayTools: () => request<Tool[]>('/discover/today'),
   getWeekTools: () => request<Tool[]>('/discover/week'),
   getDigest: () => request<DigestItem[]>('/discover/digest'),
@@ -150,7 +157,7 @@ export const api = {
   getDailyNewsList: (limit = 7, offset = 0) =>
     request<DailyNewsMeta[]>(`/daily-news/list?limit=${limit}&offset=${offset}`),
   generateDailyNews: (force = false) =>
-    request<{ ok: boolean; news: DailyNews }>(`/daily-news/generate${force ? '?force=true' : ''}`, { method: 'POST' }),
+    request<{ ok: boolean; news: DailyNews }>(`/daily-news/generate${force ? '?force=true' : ''}`, { method: 'POST' }, true),
 }
 
 export interface DigestItem {

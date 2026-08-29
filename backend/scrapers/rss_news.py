@@ -30,7 +30,7 @@ _LOOKBACK_HOURS = 48
 
 _HEADERS = {
     "User-Agent": (
-        "Mozilla/5.0 (compatible; MetisBot/1.0; +https://github.com/kevinhu/metis)"
+        "Mozilla/5.0 (compatible; MetisBot/1.0; +https://github.com/Kevinxnova/metis)"
     )
 }
 

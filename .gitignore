@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 
 # Node
 node_modules/
@@ -15,11 +17,15 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 data/*.log
+*.log
 *.db
 *.db-info
 
 # Build artifacts
 frontend/tsconfig.tsbuildinfo
+.coverage
+htmlcov/
+.ruff_cache/
 
 # IDE
 .vscode/

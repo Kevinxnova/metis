@@ -12,7 +12,6 @@ export default function Discover({ lang }: { lang: Lang }) {
   const [weekTools, setWeekTools] = useState<Tool[]>([])
   const [_digest, setDigest] = useState<DigestItem[]>([])
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const isZh = lang === 'zh'
@@ -33,15 +32,6 @@ export default function Discover({ lang }: { lang: Lang }) {
       setLoading(false)
     })
   }, [])
-
-  const handleGenerateAi = async () => {
-    setAiLoading(true)
-    try {
-      const result = await api.generateAiPicks()
-      setAiPicks(result.picks)
-    } catch { /* ignore */ }
-    setAiLoading(false)
-  }
 
   if (selectedTool) {
     const aiInfo = aiPicks.find(p => p.id === selectedTool.id)
@@ -131,15 +121,7 @@ export default function Discover({ lang }: { lang: Lang }) {
               gradient="linear-gradient(135deg, rgba(96,165,250,0.08), rgba(96,165,250,0.02))"
               borderColor="rgba(96,165,250,0.2)"
               empty={aiPicks.length === 0}
-              emptyText={isZh ? '点击生成按钮让 AI 分析' : 'Click to generate AI picks'}
-              action={aiPicks.length === 0 ? (
-                <button onClick={handleGenerateAi} disabled={aiLoading} style={{
-                  fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: 'pointer',
-                  border: '1px solid rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.1)', color: 'var(--accent-blue)',
-                }}>
-                  {aiLoading ? (isZh ? '分析中...' : 'Analyzing...') : (isZh ? '🤖 生成' : '🤖 Generate')}
-                </button>
-              ) : undefined}
+              emptyText={isZh ? 'AI 推荐将在定时任务完成后出现' : 'AI picks appear after the scheduled pipeline runs'}
             >
               {/* Quick summary list */}
               {aiPicks.length > 0 && (

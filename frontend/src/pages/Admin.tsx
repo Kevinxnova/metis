@@ -16,7 +16,7 @@ function AdminLogin({ onAuth, lang }: { onAuth: () => void; lang: Lang }) {
     setError('')
     try {
       await api.verifyAdmin(password)
-      sessionStorage.setItem('metis-admin', 'true')
+      sessionStorage.setItem('metis-admin-password', password)
       onAuth()
     } catch {
       setError(isZh ? '密码错误' : 'Wrong password')
@@ -62,13 +62,22 @@ function AdminLogin({ onAuth, lang }: { onAuth: () => void; lang: Lang }) {
 
 export default function Admin({ lang }: { lang: Lang }) {
   const [authed, setAuthed] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [filters, setFilters] = useState<ToolFilters>({})
 
   useEffect(() => {
-    if (sessionStorage.getItem('metis-admin') === 'true') {
-      setAuthed(true)
+    const password = sessionStorage.getItem('metis-admin-password')
+    if (!password) {
+      setChecking(false)
+      return
     }
+    api.verifyAdmin(password)
+      .then(() => setAuthed(true))
+      .catch(() => sessionStorage.removeItem('metis-admin-password'))
+      .finally(() => setChecking(false))
   }, [])
+
+  if (checking) return null
 
   if (!authed) {
     return <AdminLogin onAuth={() => setAuthed(true)} lang={lang} />
@@ -94,12 +103,26 @@ export default function Admin({ lang }: { lang: Lang }) {
             {lang === 'zh' ? '管理后台' : 'Admin'}
           </span>
         </div>
-        <a href="/discover" style={{
-          fontSize: 13, color: '#666', textDecoration: 'none',
-          padding: '4px 12px', border: '1px solid #ddd', borderRadius: 4,
-        }}>
-          {lang === 'zh' ? '← 返回发现页' : '← Back to Discover'}
-        </a>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('metis-admin-password')
+              setAuthed(false)
+            }}
+            style={{
+              fontSize: 13, color: '#666', background: 'white', cursor: 'pointer',
+              padding: '4px 12px', border: '1px solid #ddd', borderRadius: 4,
+            }}
+          >
+            {lang === 'zh' ? '退出' : 'Sign out'}
+          </button>
+          <a href="/discover" style={{
+            fontSize: 13, color: '#666', textDecoration: 'none',
+            padding: '4px 12px', border: '1px solid #ddd', borderRadius: 4,
+          }}>
+            {lang === 'zh' ? '← 返回发现页' : '← Back to Discover'}
+          </a>
+        </div>
       </div>
 
       <ScrapeHealth lang={lang} />

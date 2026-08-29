@@ -12,6 +12,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import pytest
+
+pytestmark = pytest.mark.integration
+if os.getenv("METIS_RUN_INTEGRATION_TESTS") != "1":
+    pytest.skip(
+        "Set METIS_RUN_INTEGRATION_TESTS=1 to run live Turso/MiniMax tests",
+        allow_module_level=True,
+    )
+
 from backend.db import get_db, _use_turso
 from backend.config import MINIMAX_API_KEY
 
@@ -78,7 +86,6 @@ def test_ai_news_query_without_classification():
 def test_minimax_api_key_available():
     """Step 4: Is MINIMAX_API_KEY loaded?"""
     assert MINIMAX_API_KEY, "MINIMAX_API_KEY is empty"
-    print(f"  key prefix: {MINIMAX_API_KEY[:8]}...")
 
 
 def test_minimax_api_reachable():

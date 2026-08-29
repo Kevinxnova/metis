@@ -34,12 +34,10 @@ cat > "$PLIST_PATH" << PLIST
     <string>com.metis.backend</string>
     <key>ProgramArguments</key>
     <array>
-        <string>${PROJECT_DIR}/.venv/bin/uvicorn</string>
+        <string>${PROJECT_DIR}/.venv/bin/gunicorn</string>
+        <string>--bind</string>
+        <string>127.0.0.1:8000</string>
         <string>backend.api.main:app</string>
-        <string>--host</string>
-        <string>0.0.0.0</string>
-        <string>--port</string>
-        <string>8000</string>
     </array>
     <key>WorkingDirectory</key>
     <string>${PROJECT_DIR}</string>

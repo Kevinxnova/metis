@@ -1,6 +1,10 @@
 """Scraper scheduler. Run all scrapers and report results."""
 
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from backend.scrapers.github import GitHubScraper
 from backend.scrapers.hackernews import HNScraper
 from backend.scrapers.producthunt import ProductHuntScraper
