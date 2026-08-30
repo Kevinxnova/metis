@@ -81,7 +81,7 @@ def admin_verify():
 
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "version": "v0.3.0"})
+    return jsonify({"status": "ok", "version": "v0.4.0"})
 
 
 @app.route("/api/health/scrapes")

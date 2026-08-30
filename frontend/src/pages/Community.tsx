@@ -84,6 +84,14 @@ export default function Community({ lang }: { lang: Lang }) {
               fontFamily: 'inherit', outline: 'none',
             }}
           />
+          <p style={{
+            color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.6,
+            margin: '0 0 12px',
+          }}>
+            {isZh
+              ? '隐私提示：昵称、留言内容和日期将在此页面公开显示。请勿填写邮箱、电话、密码、API Key 或其他敏感信息。'
+              : 'Privacy notice: your nickname, message, and submission date will be public. Do not include email addresses, phone numbers, passwords, API keys, or other sensitive information.'}
+          </p>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: sent ? '#4a9' : 'transparent' }}>
               {isZh ? '已提交，感谢分享！' : 'Submitted, thanks for sharing!'}
