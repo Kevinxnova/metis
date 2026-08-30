@@ -137,3 +137,7 @@ instructions.
 Bug reports and focused pull requests are welcome. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. For vulnerabilities,
 follow [SECURITY.md](SECURITY.md) and do not create a public issue.
+
+## License
+
+Metis is available under the [MIT License](LICENSE).
