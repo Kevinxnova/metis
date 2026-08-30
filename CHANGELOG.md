@@ -6,6 +6,20 @@
 
 ## Unreleased
 
+---
+
+## [v1.0.0] — 2026-08-30
+
+Metis 首个正式开源版本。此版本将完整的数据发现、AI 增强、人工策展、
+双语展示和 Newsletter 工作流作为稳定基线发布。
+
+### Added
+- 使用 MIT License 正式开源，并发布首个稳定版本
+- 新增中英文 README、项目截图、Quick Start、部署、安全和贡献指南
+- 新增 GitHub Actions CI、Dependabot 和 GitHub 密钥扫描保护
+- 支持 GPT、Claude、MiniMax、GLM、DeepSeek 等 AI 模型的扩展方向；
+  当前参考实现默认使用 MiniMax
+
 ### Security
 - 管理、通讯、翻译、生成和监控接口现在统一要求管理员鉴权
 - 未配置 `CRON_SECRET` 时定时任务接口默认拒绝访问

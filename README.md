@@ -3,6 +3,7 @@
 [English](#metis) | [中文](#中文说明)
 
 [![CI](https://github.com/Kevinxnova/metis/actions/workflows/ci.yml/badge.svg)](https://github.com/Kevinxnova/metis/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Kevinxnova/metis)](https://github.com/Kevinxnova/metis/releases/latest)
 
 ![Metis homepage](docs/assets/metis-homepage.png)
 
@@ -10,8 +11,8 @@ Metis is a bilingual AI-tool discovery desk. It gathers fresh projects and
 technology news, removes duplicates, enriches the results with AI, and gives a
 human curator a focused workflow for publishing recommendations and newsletters.
 
-The project is an early-stage personal tool. Expect the data model and UI to
-evolve.
+Version 1.0.0 is the first stable open-source release. The data model and UI
+will continue to evolve without changing the project's core workflow.
 
 ## What it does
 
@@ -170,7 +171,8 @@ Metis 是一个中英双语的 AI 工具发现与策展平台。它持续收集�
 资讯，自动去重并通过 AI 进行分类、评分、摘要和推荐，再交给人工完成精选
 与发布。
 
-项目目前仍处于早期阶段，数据模型和界面可能继续调整。
+v1.0.0 是 Metis 的首个正式开源版本。后续数据模型和界面仍会持续演进，
+但项目的核心工作流将保持稳定。
 
 ### 主要功能
 
