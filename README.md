@@ -17,7 +17,10 @@ evolve.
 
 - Collects GitHub Trending, Hacker News, Product Hunt, and selected AI RSS feeds.
 - Normalizes URLs and merges discoveries that appear in more than one source.
-- Classifies, scores, summarizes, translates, and introduces items with MiniMax.
+- Uses AI models such as GPT, Claude, MiniMax, GLM, or DeepSeek for
+  classification, trend scoring, summaries, recommendations, and AI
+  introductions. The included reference integration currently defaults to
+  MiniMax.
 - Publishes a bilingual discovery page and AI daily briefing.
 - Provides a password-protected curation dashboard.
 - Stores data in local SQLite or a hosted Turso database.
@@ -173,7 +176,8 @@ Metis 是一个中英双语的 AI 工具发现与策展平台。它持续收集�
 
 - 采集 GitHub Trending、Hacker News、Product Hunt 和精选 AI 新闻 RSS。
 - 规范化链接并合并来自多个数据源的重复项目。
-- 使用 MiniMax 完成分类、趋势评分、摘要、推荐和 AI 简介。
+- 可使用 GPT、Claude、MiniMax、GLM、DeepSeek 等 AI 模型完成分类、趋势评分、
+  摘要、推荐和 AI 简介；当前仓库中的参考实现默认接入 MiniMax。
 - 提供中英双语的发现页与 AI 每日简报。
 - 提供受密码保护的策展后台。
 - 支持本地 SQLite 或云端 Turso 数据库。
